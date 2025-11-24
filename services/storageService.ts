@@ -1,0 +1,57 @@
+import { Customer, PromissoryNote } from '../types';
+import { MOCK_CUSTOMERS, MOCK_NOTES } from '../constants';
+
+const CUSTOMERS_KEY = 'iwr_customers';
+const NOTES_KEY = 'iwr_notes';
+
+export const storageService = {
+  // Initialize data if empty
+  init: () => {
+    if (!localStorage.getItem(CUSTOMERS_KEY)) {
+      localStorage.setItem(CUSTOMERS_KEY, JSON.stringify(MOCK_CUSTOMERS));
+    }
+    if (!localStorage.getItem(NOTES_KEY)) {
+      localStorage.setItem(NOTES_KEY, JSON.stringify(MOCK_NOTES));
+    }
+  },
+
+  getCustomers: (): Customer[] => {
+    const data = localStorage.getItem(CUSTOMERS_KEY);
+    return data ? JSON.parse(data) : [];
+  },
+
+  addCustomer: (customer: Customer) => {
+    const customers = storageService.getCustomers();
+    customers.push(customer);
+    localStorage.setItem(CUSTOMERS_KEY, JSON.stringify(customers));
+  },
+
+  getNotes: (): PromissoryNote[] => {
+    const data = localStorage.getItem(NOTES_KEY);
+    return data ? JSON.parse(data) : [];
+  },
+
+  addNote: (note: PromissoryNote) => {
+    const notes = storageService.getNotes();
+    notes.push(note);
+    localStorage.setItem(NOTES_KEY, JSON.stringify(notes));
+  },
+
+  updateNoteStatus: (id: string, status: any) => {
+    const notes = storageService.getNotes();
+    const index = notes.findIndex(n => n.id === id);
+    if (index !== -1) {
+      notes[index].status = status;
+      localStorage.setItem(NOTES_KEY, JSON.stringify(notes));
+    }
+  },
+
+  markWhatsappSent: (id: string) => {
+    const notes = storageService.getNotes();
+    const index = notes.findIndex(n => n.id === id);
+    if (index !== -1) {
+      notes[index].whatsappSent = true;
+      localStorage.setItem(NOTES_KEY, JSON.stringify(notes));
+    }
+  }
+};
