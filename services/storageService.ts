@@ -26,9 +26,25 @@ export const storageService = {
     localStorage.setItem(CUSTOMERS_KEY, JSON.stringify(customers));
   },
 
+  toggleCustomerVip: (id: string) => {
+    const customers = storageService.getCustomers();
+    const index = customers.findIndex(c => c.id === id);
+    if (index !== -1) {
+      customers[index].isVip = !customers[index].isVip;
+      localStorage.setItem(CUSTOMERS_KEY, JSON.stringify(customers));
+    }
+  },
+
   getNotes: (): PromissoryNote[] => {
     const data = localStorage.getItem(NOTES_KEY);
     return data ? JSON.parse(data) : [];
+  },
+  
+  getNotesByCustomerId: (customerId: string): PromissoryNote[] => {
+    const notes = storageService.getNotes();
+    return notes.filter(n => n.customerId === customerId).sort((a, b) => 
+      new Date(b.issueDate).getTime() - new Date(a.issueDate).getTime()
+    );
   },
 
   addNote: (note: PromissoryNote) => {

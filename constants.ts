@@ -1,6 +1,6 @@
 import { Customer, PromissoryNote, SaleStatus } from './types';
 
-export const APP_NAME = "IWR Lojas";
+export const APP_NAME = "IWR Moda";
 
 export const MOCK_CUSTOMERS: Customer[] = [
   {
@@ -10,6 +10,7 @@ export const MOCK_CUSTOMERS: Customer[] = [
     phone: '5511999999999',
     email: 'ismael@example.com',
     address: 'Rua das Flores, 123, Centro',
+    isVip: true,
     createdAt: new Date().toISOString()
   },
   {
@@ -19,6 +20,7 @@ export const MOCK_CUSTOMERS: Customer[] = [
     phone: '5511988888888',
     email: 'ana@example.com',
     address: 'Av. Brasil, 456, Jardins',
+    isVip: false,
     createdAt: new Date().toISOString()
   }
 ];

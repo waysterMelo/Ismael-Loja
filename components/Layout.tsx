@@ -1,5 +1,5 @@
 import React from 'react';
-import { LayoutDashboard, Users, FileText, ShoppingCart, LogOut, Bell, Search, Menu } from 'lucide-react';
+import { LayoutDashboard, Users, FileText, ShoppingBag, Search, Bell, Menu, LogOut, Command } from 'lucide-react';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -9,111 +9,104 @@ interface LayoutProps {
 
 export const Layout: React.FC<LayoutProps> = ({ children, activePage, onNavigate }) => {
   const menuItems = [
-    { id: 'dashboard', label: 'Visão Geral', icon: <LayoutDashboard size={22} /> },
-    { id: 'pos', label: 'Nova Venda', icon: <ShoppingCart size={22} /> },
-    { id: 'notes', label: 'Gestão de Títulos', icon: <FileText size={22} /> },
-    { id: 'customers', label: 'Clientes VIP', icon: <Users size={22} /> },
+    { id: 'dashboard', label: 'Visão Geral', icon: <LayoutDashboard size={20} strokeWidth={1.5} /> },
+    { id: 'pos', label: 'Boutique POS', icon: <ShoppingBag size={20} strokeWidth={1.5} /> },
+    { id: 'notes', label: 'Títulos & Notas', icon: <FileText size={20} strokeWidth={1.5} /> },
+    { id: 'customers', label: 'Clientele', icon: <Users size={20} strokeWidth={1.5} /> },
   ];
 
   return (
-    <div className="flex h-screen bg-[#F2F2F7] overflow-hidden font-sans text-gray-800">
+    <div className="flex h-screen bg-atelier-bg overflow-hidden">
       
-      {/* Background Decorative Elements */}
-      <div className="fixed top-0 left-0 w-full h-[300px] bg-gradient-to-b from-gray-200 to-transparent pointer-events-none z-0"></div>
-
-      {/* Floating Sidebar */}
-      <aside className="hidden md:flex flex-col w-72 m-4 rounded-3xl bg-luxury-charcoal text-white shadow-2xl z-20 relative overflow-hidden">
-        {/* Abstract Gold Shape */}
-        <div className="absolute top-0 right-0 w-32 h-32 bg-gold-600 rounded-full blur-[80px] opacity-20 pointer-events-none"></div>
-
-        <div className="p-8 pb-4">
-          <div className="flex items-center gap-3">
-             <div className="w-10 h-10 rounded-xl bg-gold-gradient flex items-center justify-center shadow-glow">
-                <span className="font-serif font-bold text-luxury-black text-xl">I</span>
-             </div>
-             <div>
-               <h1 className="text-xl font-serif font-bold tracking-wide text-white">IWR <span className="text-gold-500">Lojas</span></h1>
-               <p className="text-[10px] text-gray-400 uppercase tracking-[0.2em]">Luxury Retail</p>
-             </div>
-          </div>
+      {/* Sidebar - Architectural Column */}
+      <aside className="w-[280px] h-full bg-atelier-surface border-r border-atelier-line flex flex-col z-40 shadow-[4px_0_24px_rgba(0,0,0,0.02)]">
+        
+        {/* Brand Header */}
+        <div className="h-24 flex items-center px-8 border-b border-atelier-line/50">
+           <div className="flex flex-col">
+              <span className="font-serif text-2xl font-bold tracking-tight text-atelier-black italic">IWR.</span>
+              <span className="text-[10px] font-mono uppercase tracking-[0.2em] text-atelier-secondary mt-1">Atelier OS</span>
+           </div>
         </div>
 
-        <nav className="flex-1 px-4 space-y-2 mt-8">
-          {menuItems.map((item) => (
-            <button
-              key={item.id}
-              onClick={() => onNavigate(item.id)}
-              className={`w-full flex items-center gap-4 px-6 py-4 rounded-2xl transition-all duration-300 group relative overflow-hidden
-                ${activePage === item.id 
-                  ? 'text-luxury-black font-semibold' 
-                  : 'text-gray-400 hover:text-white hover:bg-white/5'
-                }`}
-            >
-              {/* Active Background Slide */}
-              <div className={`absolute inset-0 bg-gold-gradient transition-transform duration-300 ease-out ${activePage === item.id ? 'translate-x-0' : '-translate-x-full'}`}></div>
-              
-              <span className="relative z-10">{item.icon}</span>
-              <span className="relative z-10 text-sm tracking-wide">{item.label}</span>
-            </button>
-          ))}
+        {/* Navigation */}
+        <nav className="flex-1 py-10 px-4 space-y-2">
+          {menuItems.map((item) => {
+            const isActive = activePage === item.id;
+            return (
+              <button
+                key={item.id}
+                onClick={() => onNavigate(item.id)}
+                className={`w-full flex items-center gap-4 px-4 py-4 rounded-lg transition-all duration-500 group relative
+                  ${isActive ? 'text-atelier-black' : 'text-atelier-secondary hover:text-atelier-black'}
+                `}
+              >
+                {/* Active Indicator Line */}
+                <div className={`absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-6 bg-atelier-black transition-all duration-300 ${isActive ? 'opacity-100' : 'opacity-0'}`}></div>
+
+                <span className={`transition-transform duration-500 ${isActive ? 'scale-100' : 'scale-95 group-hover:scale-100'}`}>
+                  {item.icon}
+                </span>
+                <span className={`text-sm font-medium tracking-wide ${isActive ? 'font-semibold' : ''}`}>
+                  {item.label}
+                </span>
+              </button>
+            );
+          })}
         </nav>
 
-        <div className="p-6 mt-auto">
-          <div className="bg-white/5 rounded-2xl p-4 border border-white/10 backdrop-blur-sm">
-             <div className="flex items-center gap-3 mb-3">
-               <div className="w-8 h-8 rounded-full bg-gold-500 flex items-center justify-center text-luxury-black font-bold text-xs">EC</div>
-               <div>
-                 <p className="text-sm text-white font-medium">Eng. Chefe</p>
-                 <p className="text-xs text-gold-500">Administrador</p>
-               </div>
+        {/* User Footer */}
+        <div className="p-8 border-t border-atelier-line/50">
+          <div className="flex items-center justify-between">
+             <div className="flex items-center gap-3">
+                <div className="w-8 h-8 bg-atelier-black text-white rounded-full flex items-center justify-center font-serif italic text-xs">
+                   E.
+                </div>
+                <div className="flex flex-col">
+                   <span className="text-xs font-bold text-atelier-black">Eng. Chefe</span>
+                   <span className="text-[10px] text-atelier-secondary uppercase tracking-wider">Admin</span>
+                </div>
              </div>
-             <button className="w-full flex items-center justify-center gap-2 text-xs text-red-400 hover:text-red-300 py-2 border-t border-white/10 transition-colors">
-               <LogOut size={14} /> Sair
+             <button className="text-atelier-secondary hover:text-atelier-black transition-colors">
+                <LogOut size={16} />
              </button>
           </div>
-          <p className="text-[10px] text-center text-gray-600 mt-4 font-mono">v2.0.0 • Stable</p>
         </div>
       </aside>
 
       {/* Main Content Area */}
-      <main className="flex-1 flex flex-col relative z-10 overflow-hidden">
+      <main className="flex-1 flex flex-col relative overflow-hidden bg-atelier-bg">
         
-        {/* Glass Header */}
-        <header className="h-24 flex items-center justify-between px-8 md:px-12">
-          <div>
-            <h2 className="text-3xl font-serif font-bold text-luxury-charcoal animate-fade-in-up">
-              {menuItems.find(m => m.id === activePage)?.label}
-            </h2>
-            <p className="text-sm text-gray-500 animate-fade-in-up stagger-1">
-              {new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}
-            </p>
-          </div>
+        {/* Minimal Header */}
+        <header className="h-24 px-10 flex items-center justify-between shrink-0">
+           <div className="flex flex-col">
+              <h2 className="font-serif text-3xl text-atelier-black capitalize italic">
+                {menuItems.find(m => m.id === activePage)?.label.toLowerCase()}
+              </h2>
+           </div>
 
-          <div className="flex items-center gap-6 animate-fade-in-up stagger-2">
-            <div className="hidden lg:flex items-center bg-white rounded-full px-4 py-2.5 shadow-sm border border-gray-200 focus-within:border-gold-500 focus-within:ring-2 focus-within:ring-gold-100 transition-all w-64">
-              <Search size={18} className="text-gray-400" />
-              <input 
-                type="text" 
-                placeholder="Buscar no sistema..." 
-                className="bg-transparent border-none outline-none text-sm ml-2 w-full placeholder-gray-400"
-              />
-            </div>
-            
-            <button className="relative p-3 rounded-full bg-white shadow-sm border border-gray-200 text-gray-600 hover:text-gold-600 transition-colors">
-              <Bell size={20} />
-              <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border border-white"></span>
-            </button>
-            
-            {/* Mobile Menu Toggle (Visible only on small screens) */}
-            <button className="md:hidden p-3 rounded-full bg-luxury-black text-white">
-              <Menu size={20} />
-            </button>
-          </div>
+           <div className="flex items-center gap-6">
+              <div className="hidden md:flex items-center gap-2 px-4 py-2 bg-white rounded-full border border-atelier-line shadow-sm hover:border-atelier-secondary/30 transition-colors cursor-text">
+                 <Search size={16} className="text-atelier-secondary" />
+                 <span className="text-xs text-atelier-secondary w-24">Buscar...</span>
+                 <div className="flex items-center gap-1 px-1.5 py-0.5 bg-atelier-bg rounded border border-atelier-line">
+                    <Command size={10} className="text-atelier-secondary" />
+                    <span className="text-[10px] font-mono text-atelier-secondary">K</span>
+                 </div>
+              </div>
+              
+              <button className="relative w-10 h-10 flex items-center justify-center border border-atelier-line rounded-full bg-white hover:bg-atelier-bg transition-colors">
+                 <Bell size={18} className="text-atelier-black" />
+                 <span className="absolute top-2.5 right-3 w-1.5 h-1.5 bg-red-500 rounded-full"></span>
+              </button>
+           </div>
         </header>
 
-        {/* Scrollable Page Content */}
-        <div className="flex-1 overflow-auto px-4 md:px-12 pb-8 scroll-smooth">
-          {children}
+        {/* Dynamic Content */}
+        <div className="flex-1 overflow-y-auto px-10 pb-10 scroll-smooth">
+           <div className="max-w-[1600px] mx-auto animate-enter">
+              {children}
+           </div>
         </div>
       </main>
     </div>

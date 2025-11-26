@@ -3,105 +3,115 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>IWR Lojas - Premium System</title>
+    <title>IWR Atelier - Store OS</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
       tailwind.config = {
         theme: {
           extend: {
             colors: {
-              gold: {
-                100: '#FFF9C4',
-                200: '#FFF59D',
-                300: '#FFF176',
-                400: '#FFEE58',
-                500: '#FFD700', // Classic Gold
-                600: '#FDB813', // Deep Gold
-                700: '#B8860B', // Dark Goldenrod
-                800: '#8B6508',
-                900: '#5C4002',
+              atelier: {
+                bg: '#F9F9F7', // Off-white "Papel de Arte"
+                surface: '#FFFFFF',
+                black: '#121212', // Preto Suave
+                ink: '#1A1A1A',
+                secondary: '#888888',
+                line: '#E5E5E5',
+                gold: '#D4AF37', // Dourado Metálico Sutil
+                accent: '#2A2A2A' 
               },
-              luxury: {
-                black: '#0a0a0a',
-                charcoal: '#171717',
-                card: '#1f1f1f',
-                paper: '#fcfcfc',
-              }
             },
             fontFamily: {
-              serif: ['"Playfair Display"', 'serif'],
               sans: ['"Inter"', 'sans-serif'],
-            },
-            backgroundImage: {
-              'gold-gradient': 'linear-gradient(135deg, #FDB813 0%, #FFD700 50%, #B8860B 100%)',
-              'black-gradient': 'linear-gradient(135deg, #2C2C2C 0%, #171717 100%)',
-              'glass': 'linear-gradient(180deg, rgba(255, 255, 255, 0.7) 0%, rgba(255, 255, 255, 0.3) 100%)',
+              serif: ['"Playfair Display"', 'serif'],
+              mono: ['"JetBrains Mono"', 'monospace'],
             },
             boxShadow: {
-              'glass': '0 8px 32px 0 rgba(31, 38, 135, 0.07)',
-              'glow': '0 0 15px rgba(253, 184, 19, 0.3)',
+              'soft': '0 20px 40px -10px rgba(0,0,0,0.05)',
+              'sharp': '4px 4px 0px 0px rgba(0,0,0,1)', // Sombra brutalista
+              'float': '0 10px 30px rgba(0,0,0,0.04)',
+            },
+            animation: {
+              'enter': 'enter 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+              'slide': 'slide 1s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+            },
+            keyframes: {
+              enter: {
+                '0%': { opacity: 0, transform: 'translateY(20px) scale(0.98)' },
+                '100%': { opacity: 1, transform: 'translateY(0) scale(1)' },
+              },
+              slide: {
+                '0%': { transform: 'translateX(-100%)' },
+                '100%': { transform: 'translateX(0)' },
+              }
             }
           }
         }
       }
     </script>
     <style>
-      @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&display=swap');
+      @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500&display=swap');
       
       body {
         font-family: 'Inter', sans-serif;
-        background-color: #f3f4f6;
-        color: #171717;
+        background-color: #F9F9F7;
+        color: #1A1A1A;
+        -webkit-font-smoothing: antialiased;
+        overflow-x: hidden;
       }
 
-      /* Premium Animations */
-      @keyframes fadeInUp {
-        from { opacity: 0; transform: translateY(20px); }
-        to { opacity: 1; transform: translateY(0); }
+      /* Textura de Papel/Grão */
+      .texture-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        z-index: 9999;
+        opacity: 0.04;
+        background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+        mix-blend-mode: multiply;
+      }
+
+      h1, h2, h3, h4, h5 {
+        font-family: 'Playfair Display', serif;
+      }
+
+      .hide-scrollbar::-webkit-scrollbar {
+        display: none;
       }
       
-      .animate-fade-in-up {
-        animation: fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-      }
-
-      .stagger-1 { animation-delay: 100ms; }
-      .stagger-2 { animation-delay: 200ms; }
-      .stagger-3 { animation-delay: 300ms; }
-      .stagger-4 { animation-delay: 400ms; }
-
-      /* Glassmorphism Classes */
-      .glass-panel {
-        background: rgba(255, 255, 255, 0.8);
-        backdrop-filter: blur(12px);
-        -webkit-backdrop-filter: blur(12px);
-        border: 1px solid rgba(255, 255, 255, 0.3);
+      /* Utilitários de Luxo */
+      .editorial-border {
+        border: 1px solid #E5E5E5;
       }
       
-      .glass-dark {
-        background: rgba(23, 23, 23, 0.85);
-        backdrop-filter: blur(16px);
-        -webkit-backdrop-filter: blur(16px);
-        border: 1px solid rgba(255, 255, 255, 0.05);
+      .hover-lift {
+        transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+      }
+      .hover-lift:hover {
+        transform: translateY(-4px);
       }
 
-      /* Scrollbar */
-      ::-webkit-scrollbar { width: 6px; height: 6px; }
-      ::-webkit-scrollbar-track { background: transparent; }
-      ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
-      ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+      input, select, textarea {
+        font-family: 'Inter', sans-serif;
+      }
     </style>
-  <script type="importmap">
-{
-  "imports": {
-    "react/": "https://aistudiocdn.com/react@^19.2.0/",
-    "react": "https://aistudiocdn.com/react@^19.2.0",
-    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
-    "lucide-react": "https://aistudiocdn.com/lucide-react@^0.554.0"
-  }
-}
-</script>
-</head>
+    <script type="importmap">
+    {
+      "imports": {
+        "react/": "https://aistudiocdn.com/react@^19.2.0/",
+        "react": "https://aistudiocdn.com/react@^19.2.0",
+        "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
+        "lucide-react": "https://aistudiocdn.com/lucide-react@^0.554.0",
+        "react-dom": "https://aistudiocdn.com/react-dom@^19.2.0"
+      }
+    }
+    </script>
+  </head>
   <body>
     <div id="root"></div>
+    <div class="texture-overlay"></div>
   </body>
 </html>

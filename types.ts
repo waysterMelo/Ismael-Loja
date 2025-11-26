@@ -11,6 +11,7 @@ export interface Customer {
   phone: string;
   email: string;
   address: string;
+  isVip: boolean;
   createdAt: string;
 }
 
