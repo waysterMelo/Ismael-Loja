@@ -10,7 +10,7 @@ interface LayoutProps {
 export const Layout: React.FC<LayoutProps> = ({ children, activePage, onNavigate }) => {
   const menuItems = [
     { id: 'dashboard', label: 'Visão Geral', icon: <LayoutDashboard size={20} strokeWidth={1.5} /> },
-    { id: 'pos', label: 'Boutique POS', icon: <ShoppingBag size={20} strokeWidth={1.5} /> },
+    { id: 'pos', label: 'Vendas', icon: <ShoppingBag size={20} strokeWidth={1.5} /> },
     { id: 'notes', label: 'Títulos & Notas', icon: <FileText size={20} strokeWidth={1.5} /> },
     { id: 'customers', label: 'Clientele', icon: <Users size={20} strokeWidth={1.5} /> },
   ];
