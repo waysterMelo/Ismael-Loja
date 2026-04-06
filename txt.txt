@@ -1,0 +1,173 @@
+DIRETRIZ OFICIAL DE ENGENHARIA — SISTEMA IWR MODA
+
+Objetivo: converter o projeto atual de protótipo frontend em sistema operacional real, pronto para uso, com backend, banco de dados, autenticação, persistência real, fluxos críticos completos e execução padronizada via Docker.
+
+Decisão executiva: a equipe deve parar de tratar o projeto como demo visual e passar a tratá-lo como produto operacional. A prioridade absoluta não é redesign, animação ou refinamento cosmético; a prioridade é funcionamento real, estabilidade, persistência, segurança básica e publicação.
+
+Escopo obrigatório da V1:
+1. Autenticação real com login, logout, sessão persistida, proteção de rotas e perfis mínimos de administrador e operador.
+2. Cadastro de clientes com criação, edição, listagem, busca por nome, CPF e telefone, bloqueio de CPF duplicado e histórico financeiro.
+3. Vendas com seleção de cliente, lançamento de itens, cálculo de total, finalização, geração de título/nota promissória e registro de datas.
+4. Carteira de títulos com listagem, filtros por status e data, baixa de pagamento, identificação automática de vencidos e visualização do documento.
+5. Dashboard com dados reais do banco: total em aberto, vencidos, recebimentos do dia, base de clientes e últimas movimentações.
+6. Integração de WhatsApp com saneamento correto do telefone, mensagem padronizada e registro de envio.
+7. Base técnica com API real, banco real, validações, tratamento de erros, logs mínimos e deploy.
+
+Itens proibidos nesta fase:
+- redesign completo
+- microanimações extras
+- melhorias puramente estéticas
+- relatórios avançados
+- multiempresa
+- emissão fiscal
+- app mobile nativo
+- qualquer feature paralela que atrase a operação real
+
+Stack oficial recomendada:
+- Frontend: React + TypeScript + Vite + React Router + React Query + Zod + Tailwind
+- Backend: Node.js + Express modular ou NestJS
+- ORM: Prisma
+- Banco: PostgreSQL
+- Auth: JWT ou Supabase Auth
+- Deploy: frontend em Vercel e backend/banco em Render, Railway, Fly.io, Supabase ou Neon
+
+Recomendação oficial de aceleração:
+Se o foco for reduzir tempo de entrega, usar React no frontend e backend com Supabase para autenticação e PostgreSQL. Se a equipe preferir backend próprio, usar Express modular + Prisma + PostgreSQL.
+
+Uso obrigatório de Docker:
+Todo o ambiente deve subir por Docker para garantir padronização entre desenvolvimento, homologação e produção. A equipe deve containerizar frontend, backend e banco, e manter docker-compose para ambiente local. O projeto deve subir com um único comando. O backend deve aguardar a disponibilidade do banco antes de iniciar migrations e aplicação. Variáveis de ambiente devem ser externalizadas via .env. O repositório deve conter, no mínimo:
+- Dockerfile do frontend
+- Dockerfile do backend
+- docker-compose.yml
+- .env.example
+- scripts de inicialização/migration/seed
+- instruções de subida local padronizadas
+
+Diretriz de containers:
+1. Frontend em container separado.
+2. Backend em container separado.
+3. PostgreSQL em container separado no ambiente local.
+4. Volume persistente para banco no ambiente local.
+5. Healthcheck para serviços críticos.
+6. Scripts de migration e seed automatizados.
+7. Build reproduzível em qualquer máquina da equipe.
+8. Nada de depender de instalação manual local fora Docker, exceto Docker e Docker Compose.
+
+Estrutura mínima esperada:
+- /frontend
+- /backend
+- /infra ou arquivos de Docker na raiz
+- /docs
+- docker-compose.yml
+- .env.example
+- README operacional objetivo
+
+Modelo de dados inicial:
+users: id, name, email, password_hash, role, active, created_at
+customers: id, name, cpf, phone, email, address, is_vip, created_at, updated_at
+sales: id, customer_id, total_amount, issue_date, due_date, status, notes, created_by, created_at
+sale_items: id, sale_id, description, quantity, price, subtotal
+promissory_notes: id, sale_id, customer_id, total_amount, due_date, status, whatsapp_sent, whatsapp_sent_at, paid_at
+audit_logs: id, user_id, action, entity, entity_id, payload, created_at
+
+Regras de negócio obrigatórias:
+1. Cliente não pode ser cadastrado sem nome e CPF.
+2. CPF não pode repetir.
+3. Venda não pode ser concluída sem cliente.
+4. Venda não pode ser concluída com carrinho vazio.
+5. Título nasce como PENDENTE.
+6. Título vencido deve aparecer como OVERDUE automaticamente.
+7. Título pago não entra em aberto.
+8. Dashboard deve refletir dados reais do banco.
+9. WhatsApp deve usar número saneado corretamente.
+10. Baixa de título deve registrar data e usuário.
+
+Correções obrigatórias no código atual:
+1. Remover localStorage como fonte principal de dados.
+2. Conectar logout real ao botão da interface.
+3. Corrigir busca de clientes para pesquisar nome, CPF e telefone de verdade.
+4. Corrigir montagem do número de WhatsApp para não duplicar código do país.
+5. Corrigir filtro por data na carteira de títulos.
+6. Substituir navegação manual por rotas reais.
+7. Eliminar inconsistências do tema visual e classes inexistentes.
+8. Endurecer TypeScript com tipagem mais estrita e remoção de any.
+
+Padrão técnico obrigatório:
+Backend:
+- arquitetura modular
+- controller, service e repository separados
+- validação de entrada
+- DTOs tipados
+- regra de negócio fora do controller
+- sem acesso direto do frontend ao banco
+
+Frontend:
+- páginas por domínio
+- componentes reutilizáveis
+- camada centralizada de API
+- formulários com validação
+- estados de loading, empty e error
+- sem regras críticas duplicadas em vários componentes
+
+Banco:
+- migrations versionadas
+- índices para CPF, status e datas
+- timestamps em entidades críticas
+- seed inicial para ambiente local
+
+Ordem oficial de execução:
+
+Sprint 1 — remover modo demo e estabelecer base real
+- criar banco PostgreSQL
+- criar autenticação real
+- criar estrutura Docker completa
+- criar API de clientes
+- criar API de vendas e títulos
+- integrar frontend com API
+- retirar dependência do localStorage
+- corrigir bugs críticos atuais
+
+Critério de aceite da Sprint 1:
+o sistema deixa de ser demo e passa a funcionar com dados reais persistidos.
+
+Sprint 2 — fechar operação
+- edição de cliente
+- validações completas
+- dashboard real
+- baixa de título
+- logs de ações críticas
+- impressão decente da nota promissória
+- mensagens de erro e sucesso
+- revisão de UX operacional
+
+Critério de aceite da Sprint 2:
+a loja consegue operar no dia a dia sem ajustes manuais.
+
+Sprint 3 — preparação para produção
+- perfis e permissões
+- tratamento global de erros
+- revisão de schema
+- backups básicos
+- observabilidade mínima
+- deploy de homologação e produção
+- documentação operacional
+
+Critério de aceite da Sprint 3:
+sistema implantado com risco controlado e operação estável.
+
+Critério oficial de “pronto para uso”:
+1. Usuário faz login com autenticação real.
+2. Cliente é cadastrado com persistência real.
+3. Venda é lançada e salva no banco.
+4. Título é gerado e vinculado ao cliente.
+5. Carteira exibe status corretos.
+6. Dashboard reflete dados reais.
+7. Título pode ser baixado como pago.
+8. Dados persistem após logout e novo login.
+9. WhatsApp abre com número correto.
+10. Sistema está publicado e acessível.
+11. Ambiente local sobe integralmente com Docker.
+12. Ambiente pode ser replicado por qualquer membro da equipe sem setup manual complexo.
+
+Ordem final para a equipe:
+Iniciem imediatamente a Sprint 1. O primeiro objetivo é eliminar o modo demo e substituir localStorage por backend, banco e autenticação reais. Docker é obrigatório desde o início. Nenhuma feature visual ou paralela deve ser iniciada antes da conclusão de login real, clientes, vendas, títulos, dashboard real, persistência real e ambiente containerizado funcionando ponta a ponta.

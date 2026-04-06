@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cp -r components/ frontend/src/components/)",
+      "Bash(cp -r pages/ frontend/src/pages/)"
+    ]
+  }
+}

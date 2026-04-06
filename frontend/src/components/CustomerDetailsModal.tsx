@@ -1,31 +1,66 @@
-import React, { useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Customer, SaleStatus, PromissoryNote } from '../types';
-import { storageService } from '../services/storageService';
-import { X, Phone, MapPin, Calendar, TrendingUp, AlertTriangle, CheckCircle, Clock, ChevronDown, ChevronUp, MessageCircle, Mail, Package, CreditCard, ArrowUpRight } from 'lucide-react';
+import { useMemo, useState, useEffect, useCallback } from 'react';
+import { Customer, SaleStatus } from '../types';
+import { get } from '../api/client';
+import { X, Phone, MapPin, Calendar, TrendingUp, AlertTriangle, CheckCircle, Clock, MessageCircle, Mail, Package, CreditCard } from 'lucide-react';
+
+interface ApiNoteItem {
+  id: string;
+  description: string;
+  quantity: number;
+  price: string | number;
+}
+
+interface ApiNote {
+  id: string;
+  customerId: string;
+  totalAmount: string | number;
+  dueDate: string;
+  status: string;
+  whatsappSent: boolean;
+  sale: {
+    items: ApiNoteItem[];
+    createdAt: string;
+  };
+}
 
 interface Props {
   customer: Customer | null;
   onClose: () => void;
 }
 
+const sanitizePhone = (p: string) => {
+  const digits = p.replace(/\D/g, '');
+  return digits.startsWith('55') ? digits : '55' + digits;
+};
+
 export const CustomerDetailsModal: React.FC<Props> = ({ customer, onClose }) => {
+  const [notes, setNotes] = useState<ApiNote[]>([]);
   const [expandedNoteId, setExpandedNoteId] = useState<string | null>(null);
 
-  const history = useMemo(() => customer ? storageService.getNotesByCustomerId(customer.id) : [], [customer]);
+  useEffect(() => {
+    if (customer) {
+      getNotes();
+    }
+  }, [customer]);
 
-  // Calculations for the mini-dashboard
+  const getNotes = async () => {
+    try {
+      const response = await get<{notes: ApiNote[]}>(`/api/promissory-notes?customerId=${customer!.id}`);
+      setNotes(response.notes || []);
+    } catch (e) {
+      console.error('Failed to load notes for customer', e);
+    }
+  };
+
   const stats = useMemo(() => {
-    const totalSpent = history.reduce((acc, note) => acc + note.totalAmount, 0);
-    const openDebt = history
+    const totalSpent = notes.reduce((acc, note) => acc + Number(note.totalAmount), 0);
+    const openDebt = notes
       .filter(n => n.status !== SaleStatus.PAID)
-      .reduce((acc, note) => acc + note.totalAmount, 0);
-    const avgTicket = history.length > 0 ? totalSpent / history.length : 0;
-    
+      .reduce((acc, note) => acc + Number(note.totalAmount), 0);
+    const avgTicket = notes.length > 0 ? totalSpent / notes.length : 0;
     return { totalSpent, openDebt, avgTicket };
-  }, [history]);
-
-  if (!customer) return null;
+  }, [notes]);
 
   const toggleNote = (id: string) => {
     setExpandedNoteId(expandedNoteId === id ? null : id);
@@ -33,7 +68,7 @@ export const CustomerDetailsModal: React.FC<Props> = ({ customer, onClose }) => 
 
   const formatMoney = (val: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
 
-  const getStatusStyle = (status: SaleStatus) => {
+  const getStatusStyle = (status: string) => {
      switch(status) {
         case SaleStatus.PAID: return 'bg-green-100 text-green-700 border-green-200';
         case SaleStatus.OVERDUE: return 'bg-red-100 text-red-700 border-red-200';
@@ -41,7 +76,7 @@ export const CustomerDetailsModal: React.FC<Props> = ({ customer, onClose }) => 
      }
   };
 
-  const getStatusIcon = (status: SaleStatus) => {
+  const getStatusIcon = (status: string) => {
      switch(status) {
         case SaleStatus.PAID: return <CheckCircle size={14} className="mr-1"/>;
         case SaleStatus.OVERDUE: return <AlertTriangle size={14} className="mr-1"/>;
@@ -49,43 +84,41 @@ export const CustomerDetailsModal: React.FC<Props> = ({ customer, onClose }) => 
      }
   };
 
-  const handleWhatsApp = () => {
-     const phone = '55' + customer.phone.replace(/\D/g, '');
+  const handleWhatsApp = useCallback(() => {
+     if (!customer) return;
+     const phone = sanitizePhone(customer.phone);
      window.open(`https://wa.me/${phone}`, '_blank');
-  };
+  }, [customer]);
+
+  if (!customer) return null;
 
   return createPortal(
     <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4">
       <div className="absolute inset-0 bg-gray-900/40 backdrop-blur-md transition-opacity duration-300" onClick={onClose} />
-      
-      {/* Reduced Max Width (5xl -> 4xl/5xl) and Height (95vh -> 85vh) */}
-      <div className="bg-[#F5F5F7] w-full max-w-5xl h-[90vh] sm:h-[85vh] sm:rounded-[28px] rounded-t-[28px] shadow-2xl overflow-hidden flex flex-col md:flex-row animate-fade-in-up relative z-10 sm:border border-white/40 ring-1 ring-black/5">
-         
-         {/* Left Panel: Profile & Actions (Compact Version) */}
+      <div className="bg-white w-full max-w-5xl h-[90vh] sm:h-[85vh] sm:rounded-[28px] rounded-t-[28px] shadow-2xl overflow-hidden flex flex-col md:flex-row animate-fade-in-up relative z-10 sm:border border-white/40 ring-1 ring-black/5">
+
+         {/* Left Panel: Profile & Actions */}
          <div className="w-full md:w-[280px] lg:w-[300px] bg-white border-r border-gray-200 flex flex-col relative z-20 shrink-0">
-            {/* Header / Cover - Reduced Height */}
             <div className="h-24 bg-gradient-to-b from-gray-50 to-white relative">
                <button onClick={onClose} className="absolute top-4 left-4 p-2 rounded-full bg-white/50 hover:bg-gray-100 transition-colors md:hidden z-30">
                   <X size={20} />
                </button>
                {customer.isVip && (
-                  <div className="absolute top-4 right-4 bg-gradient-to-r from-amber-200 to-yellow-400 text-yellow-900 text-[9px] font-bold px-2.5 py-0.5 rounded-full shadow-sm flex items-center gap-1 z-20">
-                     <span>VIP</span>
+                  <div className="absolute top-4 right-4 bg-gradient-to-r from-amber-200 to-yellow-400 text-yellow-900 text-[9px] font-bold px-2.5 py-0.5 rounded-full shadow-sm">
+                     VIP
                   </div>
                )}
             </div>
 
-            {/* Profile Info - Compact */}
             <div className="px-6 -mt-12 flex flex-col items-center text-center pb-6 border-b border-gray-100">
                <div className="w-24 h-24 rounded-full p-1 bg-white shadow-lg mb-3 relative z-10">
-                  <div className={`w-full h-full rounded-full bg-gradient-to-br from-gray-200 to-gray-400 flex items-center justify-center text-3xl font-bold text-white shadow-inner overflow-hidden`}>
+                  <div className="w-full h-full rounded-full bg-gradient-to-br from-gray-200 to-gray-400 flex items-center justify-center text-3xl font-bold text-white shadow-inner overflow-hidden">
                      {customer.name.charAt(0)}
                   </div>
                </div>
                <h2 className="text-xl font-bold text-gray-900 tracking-tight leading-tight px-2">{customer.name}</h2>
                <p className="text-xs text-gray-500 mt-1">{customer.email || 'Sem e-mail'}</p>
-               
-               {/* Action Buttons - Compact */}
+
                <div className="flex items-center gap-4 mt-5 w-full justify-center">
                   <button onClick={handleWhatsApp} className="flex flex-col items-center gap-1.5 group">
                      <div className="w-10 h-10 rounded-full bg-green-500 text-white flex items-center justify-center shadow-lg shadow-green-200 group-hover:scale-110 transition-transform">
@@ -108,10 +141,9 @@ export const CustomerDetailsModal: React.FC<Props> = ({ customer, onClose }) => 
                </div>
             </div>
 
-            {/* Details List */}
             <div className="p-5 space-y-4 flex-1 overflow-y-auto">
                <div className="space-y-3">
-                  <div className="flex items-center gap-3 p-2.5 hover:bg-gray-50 rounded-xl transition-colors">
+                  <div className="flex items-center gap-3 p-2.5 hover:bg-gray-50 rounded-xl transition-colors" title="CPF">
                      <div className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center text-gray-400 shrink-0">
                         <CreditCard size={15} />
                      </div>
@@ -120,8 +152,8 @@ export const CustomerDetailsModal: React.FC<Props> = ({ customer, onClose }) => 
                         <p className="text-xs font-semibold text-gray-800 truncate">{customer.cpf}</p>
                      </div>
                   </div>
-                  
-                  <div className="flex items-center gap-3 p-2.5 hover:bg-gray-50 rounded-xl transition-colors">
+
+                  <div className="flex items-center gap-3 p-2.5 hover:bg-gray-50 rounded-xl transition-colors" title="Endereço">
                      <div className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center text-gray-400 shrink-0">
                         <MapPin size={15} />
                      </div>
@@ -145,8 +177,7 @@ export const CustomerDetailsModal: React.FC<Props> = ({ customer, onClose }) => 
          </div>
 
          {/* Right Panel: History & Stats */}
-         <div className="flex-1 flex flex-col min-h-0 bg-[#F5F5F7] relative">
-            {/* Right Panel Header - Reduced Height */}
+         <div className="flex-1 flex flex-col min-h-0 bg-gray-50 relative">
             <div className="h-16 flex items-center justify-between px-6 bg-white/80 backdrop-blur-xl border-b border-gray-200 z-20 shrink-0">
                <h3 className="text-lg font-bold text-gray-900 tracking-tight">Histórico Financeiro</h3>
                <button onClick={onClose} className="hidden md:flex bg-gray-200/50 p-1.5 rounded-full text-gray-500 hover:bg-gray-300 transition-colors">
@@ -154,10 +185,8 @@ export const CustomerDetailsModal: React.FC<Props> = ({ customer, onClose }) => 
                </button>
             </div>
 
-            {/* Scrollable Content Area */}
             <div className="flex-1 overflow-y-auto scroll-smooth">
-               
-               {/* Stats Grid (Compact) */}
+               {/* Stats Grid */}
                <div className="p-5 pb-2">
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                      <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col justify-between h-24 hover:scale-[1.01] transition-transform duration-300">
@@ -194,26 +223,25 @@ export const CustomerDetailsModal: React.FC<Props> = ({ customer, onClose }) => 
                   </div>
                </div>
 
-               {/* Timeline List - Sticky Header Section */}
+               {/* Timeline */}
                <div className="relative">
-                  <div className="sticky top-0 z-10 bg-[#F5F5F7]/95 backdrop-blur-sm border-b border-gray-200/50 px-6 py-2.5 mb-2 flex items-center">
+                  <div className="sticky top-0 z-10 bg-gray-50/95 backdrop-blur-sm border-b border-gray-200/50 px-6 py-2.5 mb-2 flex items-center">
                      <Clock size={12} className="text-gray-400 mr-2" />
                      <h4 className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Transações Recentes</h4>
                   </div>
-                  
+
                   <div className="px-5 pb-6 space-y-2.5">
-                     {history.length === 0 ? (
+                     {notes.length === 0 ? (
                         <div className="flex flex-col items-center justify-center py-12 text-gray-400 bg-white rounded-2xl border border-dashed border-gray-200">
                            <Package size={32} className="mb-2 opacity-20 stroke-1"/>
                            <p className="text-xs font-medium">Nenhuma compra registrada</p>
                         </div>
                      ) : (
-                        history.map(note => {
+                        notes.map(note => {
                            const isExpanded = expandedNoteId === note.id;
                            return (
                               <div key={note.id} className={`bg-white rounded-xl border transition-all duration-300 overflow-hidden ${isExpanded ? 'shadow-md ring-1 ring-blue-100 border-blue-200' : 'shadow-sm border-gray-100 hover:border-gray-300'}`}>
-                                 {/* Card Header (Clickable) - More compact padding */}
-                                 <div 
+                                 <div
                                     className="p-3.5 flex items-center justify-between cursor-pointer hover:bg-gray-50/50 transition-colors"
                                     onClick={() => toggleNote(note.id)}
                                  >
@@ -223,28 +251,24 @@ export const CustomerDetailsModal: React.FC<Props> = ({ customer, onClose }) => 
                                           <Package size={18} />
                                        </div>
                                        <div>
-                                          <h5 className="font-bold text-gray-900 text-sm">#{note.id}</h5>
+                                          <h5 className="font-bold text-gray-900 text-sm">#{note.id.slice(0, 8)}</h5>
                                           <p className="text-[11px] text-gray-500 flex items-center gap-1">
-                                             {new Date(note.issueDate).toLocaleDateString('pt-BR')} • {note.items.length} itens
+                                             {new Date(note.sale?.createdAt || note.dueDate).toLocaleDateString('pt-BR')} • {note.sale?.items?.length || 0} itens
                                           </p>
                                        </div>
                                     </div>
 
-                                    <div className="flex items-center gap-3 sm:gap-4">
+                                    <div className="flex items-center gap-3">
                                        <div className="text-right hidden sm:block">
-                                          <span className="block font-bold text-sm text-gray-900">{formatMoney(note.totalAmount)}</span>
+                                          <span className="block font-bold text-sm text-gray-900">{formatMoney(Number(note.totalAmount))}</span>
                                        </div>
                                        <div className={`flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold border ${getStatusStyle(note.status)}`}>
                                           {getStatusIcon(note.status)}
                                           {note.status === 'PAID' ? 'PAGO' : note.status === 'OVERDUE' ? 'VENCIDO' : 'PENDENTE'}
                                        </div>
-                                       <div className={`text-gray-300 transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`}>
-                                          <ChevronDown size={16} />
-                                       </div>
                                     </div>
                                  </div>
 
-                                 {/* Expanded Content (Items) */}
                                  <div className={`bg-gray-50/50 border-t border-gray-100 transition-all duration-300 ease-in-out ${isExpanded ? 'max-h-80 opacity-100' : 'max-h-0 opacity-0'}`}>
                                     <div className="p-4">
                                        <div className="bg-white rounded-lg border border-gray-200 overflow-hidden shadow-sm">
@@ -257,27 +281,21 @@ export const CustomerDetailsModal: React.FC<Props> = ({ customer, onClose }) => 
                                                 </tr>
                                              </thead>
                                              <tbody className="divide-y divide-gray-100">
-                                                {note.items.map((item, idx) => (
-                                                   <tr key={idx} className="group hover:bg-blue-50/30 transition-colors">
-                                                      <td className="px-3 py-2 font-medium text-gray-700 group-hover:text-blue-600 transition-colors">{item.description}</td>
+                                                {note.sale?.items?.map((item, idx) => (
+                                                   <tr key={idx} className="hover:bg-blue-50/30 transition-colors">
+                                                      <td className="px-3 py-2 font-medium text-gray-700">{item.description}</td>
                                                       <td className="px-3 py-2 text-center text-gray-500">{item.quantity}</td>
-                                                      <td className="px-3 py-2 text-right text-gray-900 font-semibold">{formatMoney(item.price)}</td>
+                                                      <td className="px-3 py-2 text-right text-gray-900 font-semibold">{formatMoney(Number(item.price))}</td>
                                                    </tr>
                                                 ))}
                                              </tbody>
                                              <tfoot className="bg-gray-50/50 border-t border-gray-100">
                                                 <tr>
                                                    <td colSpan={2} className="px-3 py-2 text-right text-[10px] font-bold text-gray-500 uppercase">Total</td>
-                                                   <td className="px-3 py-2 text-right font-bold text-sm text-gray-900">{formatMoney(note.totalAmount)}</td>
+                                                   <td className="px-3 py-2 text-right font-bold text-sm text-gray-900">{formatMoney(Number(note.totalAmount))}</td>
                                                 </tr>
                                              </tfoot>
                                           </table>
-                                       </div>
-                                       
-                                       <div className="mt-3 flex justify-end">
-                                          <button className="text-[10px] font-semibold text-blue-600 hover:text-blue-700 flex items-center gap-1 hover:underline bg-blue-50 px-2.5 py-1 rounded-md transition-colors">
-                                             Ver Documento <ArrowUpRight size={10}/>
-                                          </button>
                                        </div>
                                     </div>
                                  </div>
@@ -289,7 +307,6 @@ export const CustomerDetailsModal: React.FC<Props> = ({ customer, onClose }) => 
                </div>
             </div>
          </div>
-
       </div>
     </div>,
     document.body
