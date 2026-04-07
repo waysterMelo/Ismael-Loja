@@ -30,6 +30,7 @@ model User {
   auditLogs    AuditLog[]
 
   @@index([email])
+  @@index([active])
 }
 
 model Customer {
@@ -48,6 +49,8 @@ model Customer {
 
   @@index([name])
   @@index([email])
+  @@index([cpf])
+  @@index([phone])
 }
 
 model Sale {
@@ -60,12 +63,14 @@ model Sale {
   items       SaleItem[]
   createdBy   String
   createdAt   DateTime @default(now())
+  updatedAt   DateTime? @updatedAt
 
   promissoryNote PromissoryNote?
 
   @@index([customerId])
   @@index([status])
   @@index([createdAt])
+  @@index([customerId, createdAt])
 }
 
 model SaleItem {
@@ -96,6 +101,8 @@ model PromissoryNote {
   @@index([customerId])
   @@index([status])
   @@index([dueDate])
+  @@index([status, dueDate])
+  @@index([customerId, status])
 }
 
 model AuditLog {
@@ -111,4 +118,6 @@ model AuditLog {
   @@index([userId])
   @@index([entity])
   @@index([createdAt])
+  @@index([entity, entityId])
+  @@index([userId, createdAt])
 }

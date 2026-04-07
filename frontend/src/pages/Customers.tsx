@@ -3,15 +3,30 @@ import { Customer } from '../types';
 import { get, post, patch } from '../api/client';
 import { Plus, Search, Phone, Star, Mail, MapPin, X, Pen, Trash2 } from 'lucide-react';
 import { CustomerDetailsModal } from '../components/CustomerDetailsModal';
+import { validateRequired, validateCPF, validateEmail, validatePhone, type ValidationErrors } from '../utils/validation';
+import { useToast } from '../context/ToastContext';
+import { useAuth } from '../context/AuthContext';
+
+interface ApiCustomer {
+  id: string;
+  name: string;
+  cpf: string | null;
+  phone: string | null;
+  email: string | null;
+  address: string | null;
+  isVip: boolean;
+  createdAt: string;
+}
 
 export const Customers: React.FC = () => {
+  const { isAdmin } = useAuth();
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const toast = useToast();
 
   const [formData, setFormData] = useState<Partial<Customer>>({
     name: '', cpf: '', phone: '', email: '', address: '', isVip: false
@@ -24,8 +39,8 @@ export const Customers: React.FC = () => {
   const loadCustomers = async () => {
     try {
       setLoading(true);
-      const response = await get<{customers: any[]}>('/api/customers');
-      setCustomers((response.customers || []).map((c: any) => ({
+      const response = await get<{customers: ApiCustomer[]}>('/api/customers');
+      setCustomers((response.customers || []).map((c: ApiCustomer) => ({
         id: c.id,
         name: c.name,
         cpf: c.cpf || '',
@@ -58,7 +73,6 @@ export const Customers: React.FC = () => {
   const openNew = () => {
     setEditingCustomer(null);
     setFormData({ name: '', cpf: '', phone: '', email: '', address: '', isVip: false });
-    setError('');
     setShowForm(true);
   };
 
@@ -66,16 +80,23 @@ export const Customers: React.FC = () => {
     setShowForm(false);
     setEditingCustomer(null);
     setFormData({ name: '', cpf: '', phone: '', email: '', address: '', isVip: false });
-    setError('');
   };
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.name) return;
 
-    // CPF validation: if provided, must have at least 11 digits
-    if (formData.cpf && formData.cpf.replace(/\D/g, '').length < 11) {
-      setError('CPF deve ter 11 dígitos');
+    const errors: ValidationErrors = {};
+    const nameErr = validateRequired(formData.name, 'Nome');
+    if (nameErr) errors.name = nameErr;
+    const cpfErr = validateCPF(formData.cpf);
+    if (cpfErr) errors.cpf = cpfErr;
+    const emailErr = validateEmail(formData.email);
+    if (emailErr) errors.email = emailErr;
+    const phoneErr = validatePhone(formData.phone);
+    if (phoneErr) errors.phone = phoneErr;
+
+    if (Object.keys(errors).length > 0) {
+      toast.error(Object.values(errors).join(' • '));
       return;
     }
 
@@ -94,9 +115,9 @@ export const Customers: React.FC = () => {
       }
       handleCloseForm();
       loadCustomers();
+      toast.success(editingCustomer ? 'Cliente atualizado com sucesso' : 'Cliente criado com sucesso');
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Erro ao salvar cliente';
-      setError(msg);
+      toast.error(err instanceof Error ? err.message : 'Erro ao salvar cliente');
     }
   };
 
@@ -124,12 +145,14 @@ export const Customers: React.FC = () => {
           <h1 className="text-2xl font-bold text-gray-900">Clientes</h1>
           <p className="text-sm text-gray-500 mt-1">{customers.length} clientes registrados</p>
         </div>
-        <button
-          onClick={openNew}
-          className="bg-blue-600 text-white px-5 py-2.5 rounded-lg text-sm font-semibold hover:bg-blue-700 transition-all shadow-sm flex items-center gap-2"
-        >
-          <Plus size={18} /> Novo Cliente
-        </button>
+        {isAdmin && (
+          <button
+            onClick={openNew}
+            className="bg-blue-600 text-white px-5 py-2.5 rounded-lg text-sm font-semibold hover:bg-blue-700 transition-all shadow-sm flex items-center gap-2"
+          >
+            <Plus size={18} /> Novo Cliente
+          </button>
+        )}
       </div>
 
       <div className="relative">
@@ -156,13 +179,15 @@ export const Customers: React.FC = () => {
             )}
 
             {/* Edit button */}
-            <button
-              onClick={(e) => { e.stopPropagation(); openEdit(customer); }}
-              className="absolute top-3 left-3 w-7 h-7 rounded-full bg-gray-100 text-gray-400 flex items-center justify-center opacity-0 group-hover:opacity-100 hover:bg-gray-200 transition-all"
-              title="Editar cliente"
-            >
-               <Pen size={12} />
-            </button>
+            {isAdmin && (
+              <button
+                onClick={(e) => { e.stopPropagation(); openEdit(customer); }}
+                className="absolute top-3 left-3 w-7 h-7 rounded-full bg-gray-100 text-gray-400 flex items-center justify-center opacity-0 group-hover:opacity-100 hover:bg-gray-200 transition-all"
+                title="Editar cliente"
+              >
+                 <Pen size={12} />
+              </button>
+            )}
 
             <div
               className="cursor-pointer"
@@ -221,11 +246,6 @@ export const Customers: React.FC = () => {
                 </button>
              </div>
              <form onSubmit={handleSave} className="p-8 space-y-5 overflow-y-auto">
-                {error && (
-                  <div className="bg-red-50 text-red-600 px-4 py-3 rounded-lg text-sm border border-red-100">
-                    {error}
-                  </div>
-                )}
                 <input required placeholder="Nome Completo" className="w-full bg-gray-50 p-4 rounded-xl text-sm font-medium border border-transparent focus:bg-white focus:border-blue-300 focus:ring-2 focus:ring-blue-100 outline-none transition-all"
                   value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
                 <div className="grid grid-cols-2 gap-4">

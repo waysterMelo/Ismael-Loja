@@ -1,20 +1,20 @@
 import { prisma } from '../../shared/prisma';
-import { SaleStatus } from '@prisma/client';
+import { SaleStatus, Prisma } from '@prisma/client';
 
 export class PromissoryNotesService {
   static async list(filters: { status?: string; customerId?: string; startDate?: Date; endDate?: Date }) {
-    const where: Record<string, unknown> = {};
+    const where: Prisma.PromissoryNoteWhereInput = {};
 
     if (filters.status) {
-      where.status = filters.status;
+      where.status = filters.status as SaleStatus;
     }
     if (filters.customerId) {
       where.customerId = filters.customerId;
     }
     if (filters.startDate || filters.endDate) {
-      where.dueDate = {};
-      if (filters.startDate) (where.dueDate as Record<string, unknown>).gte = filters.startDate;
-      if (filters.endDate) (where.dueDate as Record<string, unknown>).lte = filters.endDate;
+      where.dueDate = {} as Prisma.DateTimeFilter;
+      if (filters.startDate) (where.dueDate as Prisma.DateTimeFilter).gte = filters.startDate;
+      if (filters.endDate) (where.dueDate as Prisma.DateTimeFilter).lte = filters.endDate;
     }
 
     const allNotes = await prisma.promissoryNote.findMany({

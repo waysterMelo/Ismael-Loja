@@ -36,7 +36,7 @@ export class AuthService {
         token,
         user: { id: user.id, name: user.name, email: user.email, role: user.role },
       });
-    } catch (e: any) {
+    } catch (e: unknown) {
       if (e instanceof z.ZodError) {
         res.status(400).json({ error: e.errors[0].message });
         return;

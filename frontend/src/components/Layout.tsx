@@ -1,5 +1,6 @@
 import { useNavigate, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Users, FileText, ShoppingBag, LogOut } from 'lucide-react';
+import { LayoutDashboard, Users, FileText, ShoppingBag, LogOut, Activity } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -8,22 +9,28 @@ interface LayoutProps {
 export const Layout: React.FC<LayoutProps> = ({ children }) => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { user, isAdmin, logout } = useAuth();
   const pathname = location.pathname.split('/').pop() || 'dashboard';
 
-  const menuItems = [
-    { id: 'dashboard', label: 'Visão Geral', icon: <LayoutDashboard size={20} strokeWidth={1.5} />, path: '/dashboard' },
-    { id: 'pos', label: 'Vendas', icon: <ShoppingBag size={20} strokeWidth={1.5} />, path: '/pos' },
-    { id: 'notes', label: 'Títulos e Notas', icon: <FileText size={20} strokeWidth={1.5} />, path: '/notes' },
-    { id: 'customers', label: 'Clientes', icon: <Users size={20} strokeWidth={1.5} />, path: '/customers' },
+  const allMenuItems = [
+    { id: 'dashboard', label: 'Visão Geral', icon: <LayoutDashboard size={20} strokeWidth={1.5} />, path: '/dashboard', adminOnly: false },
+    { id: 'pos', label: 'Vendas', icon: <ShoppingBag size={20} strokeWidth={1.5} />, path: '/pos', adminOnly: false },
+    { id: 'notes', label: 'Títulos e Notas', icon: <FileText size={20} strokeWidth={1.5} />, path: '/notes', adminOnly: false },
+    { id: 'customers', label: 'Clientes', icon: <Users size={20} strokeWidth={1.5} />, path: '/customers', adminOnly: false },
+    { id: 'audit', label: 'Auditoria', icon: <Activity size={20} strokeWidth={1.5} />, path: '/audit', adminOnly: true },
   ];
 
+  const menuItems = allMenuItems.filter(item => !item.adminOnly || isAdmin);
+
   const handleLogout = () => {
-    localStorage.removeItem('iwr_token');
-    localStorage.removeItem('iwr_user');
+    logout();
     navigate('/');
   };
 
   const isActive = (id: string) => pathname === id;
+
+  const userInitial = user?.name?.charAt(0).toUpperCase() || 'U';
+  const userRoleLabel = user?.role === 'ADMIN' ? 'Administrador' : 'Operador';
 
   return (
     <div className="flex h-screen bg-gray-50 overflow-hidden">
@@ -53,10 +60,11 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
           <div className="flex items-center justify-between">
              <div className="flex items-center gap-3">
                 <div className="w-8 h-8 bg-gray-900 text-white rounded-full flex items-center justify-center font-serif italic text-xs">
-                   A
+                   {userInitial}
                 </div>
                 <div className="flex flex-col">
-                   <span className="text-xs font-bold text-gray-900">Admin</span>
+                   <span className="text-xs font-bold text-gray-900">{user?.name || 'Usuário'}</span>
+                   <span className="text-[10px] font-mono uppercase tracking-wider text-gray-500">{userRoleLabel}</span>
                 </div>
              </div>
              <button onClick={handleLogout} className="text-gray-500 hover:text-gray-900 transition-colors">

@@ -1,10 +1,11 @@
 import { Router, Request, Response } from 'express';
 import { prisma } from '../../shared/prisma';
 import { SaleStatus } from '@prisma/client';
-import { authMiddleware } from '../../shared/middleware';
+import { authMiddleware, roleGuard } from '../../shared/middleware';
 
 export const dashboardRouter = Router();
 dashboardRouter.use(authMiddleware);
+dashboardRouter.use(roleGuard('ADMIN'));
 
 dashboardRouter.get('/', async (_req: Request, res: Response) => {
   const today = new Date();

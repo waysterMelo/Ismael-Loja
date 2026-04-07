@@ -3,6 +3,7 @@ import { SaleStatus } from '../types';
 import { get, patch } from '../api/client';
 import { Search, ChevronLeft, ChevronRight, CheckCircle2, AlertCircle, Clock, Filter, Wallet } from 'lucide-react';
 import { PromissoryNoteTemplate } from '../components/PromissoryNoteTemplate';
+import { useToast } from '../context/ToastContext';
 
 interface ApiNote {
   id: string;
@@ -87,32 +88,45 @@ export const Notes: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedNote, setSelectedNote] = useState<ApiNote | null>(null);
   const [filterStatus, setFilterStatus] = useState<'ALL' | string>('ALL');
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [loading, setLoading] = useState(true);
-  const [errorMsg, setErrorMsg] = useState('');
-  const [successMsg, setSuccessMsg] = useState('');
+  const toast = useToast();
 
   useEffect(() => {
     loadNotes();
   }, []);
 
-  useEffect(() => {
-    if (errorMsg || successMsg) {
-      const t = setTimeout(() => { setErrorMsg(''); setSuccessMsg(''); }, 4000);
-      return () => clearTimeout(t);
-    }
-  }, [errorMsg, successMsg]);
-
-  const loadNotes = async () => {
+  const loadNotes = async (dateFilter?: Date | null, statusFilter?: string) => {
     try {
       setLoading(true);
-      const response = await get<{notes: ApiNote[]}>('/api/promissory-notes');
+      const params = new URLSearchParams();
+      if (dateFilter) {
+        const start = new Date(dateFilter.getFullYear(), dateFilter.getMonth(), dateFilter.getDate());
+        const end = new Date(dateFilter.getFullYear(), dateFilter.getMonth(), dateFilter.getDate() + 1);
+        params.set('startDate', start.toISOString());
+        params.set('endDate', end.toISOString());
+      }
+      if (statusFilter && statusFilter !== 'ALL') {
+        params.set('status', statusFilter);
+      }
+      const url = `/api/promissory-notes${params.toString() ? `?${params.toString()}` : ''}`;
+      const response = await get<{notes: ApiNote[]}>(url);
       setAllNotes(response.notes || []);
     } catch (e) {
-      setErrorMsg('Falha ao carregar carteira de títulos');
+      toast.error('Falha ao carregar carteira de títulos');
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleDateFilter = (date: Date) => {
+    setSelectedDate(date);
+    loadNotes(date, filterStatus);
+  };
+
+  const handleStatusFilter = (status: string) => {
+    setFilterStatus(status);
+    loadNotes(selectedDate, status);
   };
 
   const filtered = useMemo(() => {
@@ -135,11 +149,11 @@ export const Notes: React.FC = () => {
   const handlePay = async (noteId: string) => {
     try {
       await patch(`/api/promissory-notes/${noteId}/pay`, {});
-      setSuccessMsg('Título baixado com sucesso');
+      toast.success('Título baixado com sucesso');
       loadNotes();
       setSelectedNote(null);
     } catch {
-      setErrorMsg('Falha ao baixar título');
+      toast.error('Falha ao baixar título');
     }
   };
 
@@ -151,7 +165,7 @@ export const Notes: React.FC = () => {
   const handleWhatsApp = async (note: ApiNote) => {
     const phone = sanitizePhone(note.customer?.phone || '');
     if (!phone || phone.length < 12) {
-      setErrorMsg('Telefone do cliente inválido para WhatsApp');
+      toast.error('Telefone do cliente inválido para WhatsApp');
       return;
     }
     const msg = `Olá ${note.customer?.name}, segue sua nota promissória da IWR Moda no valor de ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(note.totalAmount))}.`;
@@ -165,7 +179,7 @@ export const Notes: React.FC = () => {
 
   const FilterPill = ({ label, value, count, colorClass }: { label: string; value: string; count: number; colorClass: string }) => (
      <button
-        onClick={() => setFilterStatus(value)}
+        onClick={() => handleStatusFilter(value)}
         className={`px-4 py-2 rounded-lg text-xs font-bold transition-all border flex items-center gap-2 flex-shrink-0
         ${filterStatus === value
            ? 'bg-black text-white border-black shadow-lg transform scale-105'
@@ -182,22 +196,20 @@ export const Notes: React.FC = () => {
 
   return (
     <div className="h-full flex flex-col gap-6">
-      {/* Toast Messages */}
-      {errorMsg && (
-        <div className="bg-red-50 border border-red-100 text-red-600 px-4 py-3 rounded-lg text-sm flex items-center gap-2">
-          <AlertCircle size={16} /> {errorMsg}
-        </div>
-      )}
-      {successMsg && (
-        <div className="bg-green-50 border border-green-100 text-green-600 px-4 py-3 rounded-lg text-sm flex items-center gap-2">
-          <CheckCircle2 size={16} /> {successMsg}
-        </div>
-      )}
-
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
          <div>
             <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Carteira de Títulos</h1>
-            <p className="text-sm text-gray-500 mt-1">Gerencie os recebimentos e notas promissórias</p>
+            <p className="text-sm text-gray-500 mt-1">
+              Gerencie os recebimentos e notas promissórias
+              {selectedDate && (
+                <span className="ml-2 text-blue-600 font-medium">
+                  · Filtrado: {selectedDate.toLocaleDateString('pt-BR')}
+                  <button onClick={() => { setSelectedDate(null); loadNotes(null, filterStatus); }} className="ml-2 text-red-500 hover:underline">
+                    (limpar)
+                  </button>
+                </span>
+              )}
+            </p>
          </div>
          <div className="relative w-full md:w-80">
             <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
@@ -291,8 +303,8 @@ export const Notes: React.FC = () => {
          <div className="w-full lg:w-[320px] shrink-0 space-y-6">
             <CalendarWidget
                notes={allNotes}
-               selectedDate={selectedDate}
-               onSelectDate={setSelectedDate}
+               selectedDate={selectedDate || new Date()}
+               onSelectDate={handleDateFilter}
             />
             <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl p-6 text-white shadow-xl">
                <div className="flex items-center gap-3 mb-4">
@@ -353,7 +365,7 @@ export const Notes: React.FC = () => {
                </div>
             </div>
             <div className="p-4 bg-white border-t border-gray-200 grid grid-cols-3 gap-3">
-               <button onClick={() => window.print()} className="flex flex-col items-center justify-center py-2 rounded-xl text-blue-600 hover:bg-blue-50 transition-colors">
+               <button onClick={() => window.open(`/print-note?id=${selectedNote.id}`, '_blank')} className="flex flex-col items-center justify-center py-2 rounded-xl text-blue-600 hover:bg-blue-50 transition-colors">
                   <span className="text-[10px] font-medium mb-1">Imprimir</span>
                </button>
                <button onClick={() => handleWhatsApp(selectedNote)} className="flex flex-col items-center justify-center py-2 rounded-xl text-green-600 hover:bg-green-50 transition-colors">

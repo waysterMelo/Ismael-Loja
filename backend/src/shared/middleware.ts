@@ -7,10 +7,22 @@ export interface AuthRequest extends Request {
   userRole?: string;
 }
 
+export class AppError extends Error {
+  public readonly statusCode: number;
+  public readonly isOperational: boolean;
+
+  constructor(message: string, statusCode: number = 500, isOperational: boolean = true) {
+    super(message);
+    this.statusCode = statusCode;
+    this.isOperational = isOperational;
+    Object.setPrototypeOf(this, AppError.prototype);
+  }
+}
+
 export function authMiddleware(req: AuthRequest, _: Response, next: NextFunction): void {
   const header = req.headers.authorization;
   if (!header || !header.startsWith('Bearer ')) {
-    throw Object.assign(new Error('Missing authorization token'), { statusCode: 401 });
+    throw new AppError('Missing authorization token', 401);
   }
 
   const token = header.split(' ')[1];
@@ -21,22 +33,43 @@ export function authMiddleware(req: AuthRequest, _: Response, next: NextFunction
     req.userRole = decoded.role;
     next();
   } catch {
-    throw Object.assign(new Error('Invalid or expired token'), { statusCode: 401 });
+    throw new AppError('Invalid or expired token', 401);
   }
 }
 
 export function roleGuard(...roles: string[]) {
   return (req: AuthRequest, _: Response, next: NextFunction): void => {
-    if (req.userRole && !roles.includes(req.userRole)) {
-      throw Object.assign(new Error('Insufficient permissions'), { statusCode: 403 });
+    if (!req.userRole || !roles.includes(req.userRole)) {
+      throw new AppError(
+        `Access denied. Required roles: ${roles.join(', ')}, received: ${req.userRole || 'none'}`,
+        403
+      );
     }
     next();
   };
 }
 
 export function errorHandler(err: unknown, req: Request, res: Response, _next: NextFunction): void {
-  const error = err as { statusCode?: number; message?: string };
-  const status = error.statusCode || 500;
-  const message = error.message || 'Internal server error';
-  res.status(status).json({ error: message });
+  if (err instanceof AppError) {
+    res.status(err.statusCode).json({
+      error: err.message,
+      statusCode: err.statusCode,
+    });
+    return;
+  }
+
+  if (err instanceof Error) {
+    console.error('Unhandled error:', err);
+    res.status(500).json({
+      error: 'Internal server error',
+      statusCode: 500,
+    });
+    return;
+  }
+
+  console.error('Unknown error:', err);
+  res.status(500).json({
+    error: 'Internal server error',
+    statusCode: 500,
+  });
 }

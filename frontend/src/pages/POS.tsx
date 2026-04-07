@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Plus, Trash2, ChevronRight, Tag, ShoppingBag, User, ArrowRight, Loader2, AlertCircle } from 'lucide-react';
+import { Plus, Trash2, ChevronRight, Tag, ShoppingBag, User, ArrowRight, Loader2 } from 'lucide-react';
 import { get, post } from '../api/client';
+import { useToast } from '../context/ToastContext';
 
 interface ApiCustomer {
   id: string;
@@ -18,28 +19,21 @@ export const POS: React.FC = () => {
   const [cart, setCart] = useState<Array<{ id: string; description: string; quantity: number; price: number }>>([]);
   const [itemDesc, setItemDesc] = useState('');
   const [itemPrice, setItemPrice] = useState('');
-  const [generatedNote, setGeneratedNote] = useState<any>(null);
+  const [generatedNote, setGeneratedNote] = useState<{id: string; dueDate: string; totalAmount: number} | null>(null);
   const [viewState, setViewState] = useState<'INPUT' | 'SUCCESS'>('INPUT');
   const [loading, setLoading] = useState(false);
-  const [errorMsg, setErrorMsg] = useState('');
+  const toast = useToast();
 
   useEffect(() => {
     loadCustomers();
   }, []);
-
-  useEffect(() => {
-    if (errorMsg) {
-      const t = setTimeout(() => setErrorMsg(''), 4000);
-      return () => clearTimeout(t);
-    }
-  }, [errorMsg]);
 
   const loadCustomers = async () => {
     try {
       const response = await get<{customers: ApiCustomer[]}>('/api/customers');
       setCustomers(response.customers || []);
     } catch (e) {
-      setErrorMsg('Falha ao carregar clientes');
+      toast.error('Falha ao carregar clientes');
     }
   };
 
@@ -55,24 +49,25 @@ export const POS: React.FC = () => {
 
   const handleCheckout = async () => {
     if (!selectedCustomer) {
-      setErrorMsg('Selecione um cliente antes de finalizar');
+      toast.error('Selecione um cliente antes de finalizar');
       return;
     }
     if (cart.length === 0) {
-      setErrorMsg('Carrinho vazio');
+      toast.error('Carrinho vazio');
       return;
     }
     setLoading(true);
     try {
-      const response = await post('/api/sales', {
+      const response = await post<{sale: {promissoryNote: any}}>('/api/sales', {
         customerId: selectedCustomer.id,
         items: cart.map(item => ({ description: item.description, quantity: item.quantity, price: item.price })),
       });
       setGeneratedNote(response.sale.promissoryNote);
       setViewState('SUCCESS');
       setCart([]);
+      toast.success('Venda finalizada com sucesso');
     } catch (err: unknown) {
-      setErrorMsg(err instanceof Error ? err.message : 'Erro ao finalizar venda');
+      toast.error(err instanceof Error ? err.message : 'Erro ao finalizar venda');
     } finally {
       setLoading(false);
     }
@@ -95,7 +90,7 @@ export const POS: React.FC = () => {
             <p className="text-xs text-gray-500 mt-4">ID: {generatedNote.id.slice(0, 8)}</p>
          </div>
          <div className="flex gap-6">
-            <button onClick={() => window.print()} className="px-8 py-4 bg-white text-gray-900 border border-gray-200 hover:border-gray-900 transition-colors font-medium tracking-wide">
+            <button onClick={() => window.open(`/print-note?id=${generatedNote.id}`, '_blank')} className="px-8 py-4 bg-white text-gray-900 border border-gray-200 hover:border-gray-900 transition-colors font-medium tracking-wide">
                Imprimir
             </button>
             <button onClick={() => {setViewState('INPUT'); setGeneratedNote(null); setSelectedCustomer(null);}} className="px-8 py-4 bg-gray-900 text-white hover:bg-gray-700 transition-colors font-medium tracking-wide flex items-center gap-2">
@@ -108,11 +103,6 @@ export const POS: React.FC = () => {
 
   return (
     <div className="h-[calc(100vh-140px)] flex flex-col lg:flex-row overflow-hidden border border-gray-200 bg-white relative">
-       {errorMsg && (
-        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 bg-red-50 border border-red-100 text-red-600 px-4 py-3 rounded-lg text-sm flex items-center gap-2 shadow-lg">
-          <AlertCircle size={16} /> {errorMsg}
-        </div>
-       )}
        <div className="flex-1 flex flex-col p-8 lg:p-12 overflow-y-auto">
           <div className="max-w-xl mx-auto w-full space-y-12">
              <div className="space-y-4">
