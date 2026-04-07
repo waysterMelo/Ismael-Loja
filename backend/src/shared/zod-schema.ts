@@ -1,6 +1,6 @@
-import { ZodError } from 'zod';
+import { ZodError, ZodSchema } from 'zod';
 
-export function zodMiddleware(schema: ReturnType<import('zod').ZodSchema>, req: Request) {
+export function zodMiddleware(schema: ZodSchema, req: Request) {
   return schema.parse(req.body);
 }
 

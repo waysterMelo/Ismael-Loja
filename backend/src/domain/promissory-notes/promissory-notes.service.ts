@@ -44,6 +44,7 @@ export class PromissoryNotesService {
 
   static async getById(id: string) {
     return prisma.promissoryNote.findUnique({
+      where: { id },
       include: { customer: true, sale: { include: { items: true } } },
     });
   }

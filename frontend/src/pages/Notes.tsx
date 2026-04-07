@@ -7,7 +7,7 @@ import { PromissoryNoteTemplate } from '../components/PromissoryNoteTemplate';
 interface ApiNote {
   id: string;
   customerId: string;
-  customer: { name: string; phone: string | null };
+  customer: { name: string; phone: string | null; cpf: string | null };
   totalAmount: number | string;
   dueDate: string;
   status: string;
@@ -343,7 +343,7 @@ export const Notes: React.FC = () => {
                     id: selectedNote.id.slice(0, 8),
                     customerName: selectedNote.customer?.name || '',
                     customerPhone: selectedNote.customer?.phone || '',
-                    customerCpf: '',
+                    customerCpf: selectedNote.customer?.cpf || '',
                     items: selectedNote.sale?.items?.map(item => ({ id: item.id, description: item.description, quantity: item.quantity, price: Number(item.price) })) || [],
                     totalAmount: Number(selectedNote.totalAmount),
                     dueDate: selectedNote.dueDate,

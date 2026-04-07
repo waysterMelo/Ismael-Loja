@@ -11,6 +11,20 @@ const createCustomerSchema = z.object({
 });
 
 export class CustomerService {
+  static async getById(id: string) {
+    const customer = await prisma.customer.findUnique({
+      where: { id },
+      include: {
+        sales: { select: { id: true, totalAmount: true, status: true, createdAt: true } },
+        promissoryNotes: { select: { id: true, totalAmount: true, status: true, dueDate: true } },
+      },
+    });
+    if (!customer) {
+      throw Object.assign(new Error('Customer not found'), { statusCode: 404 });
+    }
+    return customer;
+  }
+
   static async listAll() {
     return prisma.customer.findMany({
       orderBy: [{ name: 'asc' }],
@@ -20,7 +34,7 @@ export class CustomerService {
     });
   }
 
-  static async create(data: { name: string; cpf?: string; email?: string; phone?: string; address?: string; isVip?: boolean }) {
+  static async create(data: { name: string; cpf?: string; email?: string; phone?: string; address?: string; isVip?: boolean }, userId: string) {
     const parsed = createCustomerSchema.parse(data);
 
     if (parsed.cpf) {
@@ -30,7 +44,7 @@ export class CustomerService {
       }
     }
 
-    return prisma.customer.create({
+    const customer = await prisma.customer.create({
       data: {
         name: parsed.name,
         cpf: parsed.cpf ? parsed.cpf.replace(/\D/g, '') : null,
@@ -40,6 +54,18 @@ export class CustomerService {
         isVip: parsed.isVip || false,
       },
     });
+
+    await prisma.auditLog.create({
+      data: {
+        userId,
+        action: 'CREATE_CUSTOMER',
+        entity: 'Customer',
+        entityId: customer.id,
+        payload: JSON.stringify({ name: customer.name, cpf: customer.cpf }),
+      },
+    });
+
+    return customer;
   }
 
   static async search(query: string) {
@@ -58,7 +84,7 @@ export class CustomerService {
     });
   }
 
-  static async update(id: string, data: { name?: string; cpf?: string; phone?: string; email?: string; address?: string; isVip?: boolean }) {
+  static async update(id: string, data: { name?: string; cpf?: string; phone?: string; email?: string; address?: string; isVip?: boolean }, userId: string) {
     const existing = await prisma.customer.findUnique({ where: { id } });
     if (!existing) {
       throw Object.assign(new Error('Customer not found'), { statusCode: 404 });
@@ -71,7 +97,7 @@ export class CustomerService {
       }
     }
 
-    return prisma.customer.update({
+    const customer = await prisma.customer.update({
       where: { id },
       data: {
         name: data.name ?? existing.name,
@@ -82,6 +108,18 @@ export class CustomerService {
         isVip: data.isVip !== undefined ? data.isVip : existing.isVip,
       },
     });
+
+    await prisma.auditLog.create({
+      data: {
+        userId,
+        action: 'UPDATE_CUSTOMER',
+        entity: 'Customer',
+        entityId: customer.id,
+        payload: JSON.stringify({ name: customer.name, cpf: customer.cpf }),
+      },
+    });
+
+    return customer;
   }
 
   static async getNotesByCustomerId(customerId: string) {

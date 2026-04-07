@@ -8,5 +8,5 @@ customersRouter.use(authMiddleware);
 customersRouter.get('/', CustomerController.list);
 customersRouter.post('/', CustomerController.create);
 customersRouter.get('/search', CustomerController.search);
-customersRouter.get('/notes/:id', CustomerController.notes);
+customersRouter.get('/:id', CustomerController.getById);
 customersRouter.patch('/:id', CustomerController.update);

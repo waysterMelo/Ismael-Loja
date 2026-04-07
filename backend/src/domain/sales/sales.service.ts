@@ -58,6 +58,16 @@ export class SalesService {
         },
       });
 
+      await tx.auditLog.create({
+        data: {
+          userId,
+          action: 'CREATE_SALE',
+          entity: 'Sale',
+          entityId: newSale.id,
+          payload: JSON.stringify({ customerId: parsed.customerId, totalAmount, itemCount: parsed.items.length }),
+        },
+      });
+
       const fullSale = await tx.sale.findUnique({
         where: { id: newSale.id },
         include: { items: true, customer: true, promissoryNote: true },
@@ -78,6 +88,7 @@ export class SalesService {
 
   static async getById(id: string) {
     return prisma.sale.findUnique({
+      where: { id },
       include: { items: true, customer: true, promissoryNote: true },
     });
   }

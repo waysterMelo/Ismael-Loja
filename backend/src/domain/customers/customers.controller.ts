@@ -2,6 +2,8 @@ import { Request, Response } from 'express';
 import { CustomerService } from './customers.service';
 import { AuthRequest } from '../../shared/middleware';
 
+type ParamId = { id: string };
+
 export class CustomerController {
   static async list(_req: Request, res: Response) {
     const customers = await CustomerService.listAll();
@@ -10,11 +12,11 @@ export class CustomerController {
 
   static async create(req: AuthRequest, res: Response) {
     try {
-      const customer = await CustomerService.create(req.body);
+      const customer = await CustomerService.create(req.body, req.userId!);
       res.status(201).json({ customer });
-    } catch (e: any) {
-      const status = e.statusCode || 400;
-      res.status(status).json({ error: e.message });
+    } catch (e: unknown) {
+      const err = e as { statusCode?: number; message?: string };
+      res.status(err.statusCode || 400).json({ error: err.message });
     }
   }
 
@@ -28,18 +30,28 @@ export class CustomerController {
     res.json({ customers });
   }
 
-  static async update(req: Request, res: Response) {
+  static async update(req: AuthRequest, res: Response) {
     try {
-      const customer = await CustomerService.update(req.params.id, req.body);
+      const customer = await CustomerService.update((req.params as ParamId).id, req.body, req.userId!);
       res.json({ customer });
-    } catch (e: any) {
-      const status = e.statusCode || 400;
-      res.status(status).json({ error: e.message });
+    } catch (e: unknown) {
+      const err = e as { statusCode?: number; message?: string };
+      res.status(err.statusCode || 400).json({ error: err.message });
+    }
+  }
+
+  static async getById(req: Request, res: Response) {
+    try {
+      const customer = await CustomerService.getById((req.params as ParamId).id);
+      res.json({ customer });
+    } catch (e: unknown) {
+      const err = e as { statusCode?: number; message?: string };
+      res.status(err.statusCode || 400).json({ error: err.message });
     }
   }
 
   static async notes(req: Request, res: Response) {
-    const notes = await CustomerService.getNotesByCustomerId(req.params.id);
+    const notes = await CustomerService.getNotesByCustomerId((req.params as ParamId).id);
     res.json({ notes });
   }
 }

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { get } from '../api/client';
-import { ArrowUpRight, Users, AlertOctagon } from 'lucide-react';
+import { ArrowUpRight, Users, AlertOctagon, Calendar } from 'lucide-react';
 
 interface DashboardData {
   stats: {
@@ -56,7 +56,7 @@ export const Dashboard: React.FC = () => {
          </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-px bg-gray-200 border border-gray-200">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-px bg-gray-200 border border-gray-200">
          <div className="bg-gray-50 p-8 hover:bg-white transition-colors group">
             <div className="flex justify-between items-start mb-8">
                <span className="text-xs font-bold uppercase tracking-widest text-gray-500">Em Aberto</span>
@@ -65,6 +65,16 @@ export const Dashboard: React.FC = () => {
             <div>
                <span className="text-4xl md:text-5xl font-serif text-gray-900 block mb-2">{formatMoney(stats.pendingValue)}</span>
                <span className="text-xs text-gray-400 font-mono">Receita pendente</span>
+            </div>
+         </div>
+         <div className="bg-gray-50 p-8 hover:bg-white transition-colors group">
+            <div className="flex justify-between items-start mb-8">
+               <span className="text-xs font-bold uppercase tracking-widest text-gray-500">Recebimentos Hoje</span>
+               <Calendar size={20} className="text-blue-500" />
+            </div>
+            <div>
+               <span className="text-4xl md:text-5xl font-serif text-gray-900 block mb-2">{formatMoney(stats.dueTodayValue)}</span>
+               <span className="text-xs text-gray-400 font-mono">Vencendo hoje</span>
             </div>
          </div>
          <div className="bg-gray-50 p-8 hover:bg-white transition-colors group">
