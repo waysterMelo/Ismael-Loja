@@ -24,6 +24,17 @@ export const POS: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const toast = useToast();
 
+  interface SaleResponse {
+    sale: {
+      id: string;
+      promissoryNote: {
+        id: string;
+        dueDate: string;
+        totalAmount: number;
+      };
+    };
+  }
+
   useEffect(() => {
     loadCustomers();
   }, []);
@@ -58,7 +69,7 @@ export const POS: React.FC = () => {
     }
     setLoading(true);
     try {
-      const response = await post<{sale: {promissoryNote: any}}>('/api/sales', {
+      const response = await post<SaleResponse>('/api/sales', {
         customerId: selectedCustomer.id,
         items: cart.map(item => ({ description: item.description, quantity: item.quantity, price: item.price })),
       });

@@ -76,7 +76,7 @@ export class CustomerService {
         OR: [
           { name: { contains: term, mode: 'insensitive' } },
           { email: { contains: term, mode: 'insensitive' } },
-          { cpf: { contains: query.replace(/\D/g, ''), mode: 'insensitive' } },
+          { cpf: { contains: digitOnly, mode: 'insensitive' } },
           { phone: { contains: digitOnly, mode: 'insensitive' } },
         ],
       },

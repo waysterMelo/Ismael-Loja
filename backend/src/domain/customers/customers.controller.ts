@@ -21,9 +21,9 @@ export class CustomerController {
   }
 
   static async search(req: Request, res: Response) {
-    const query = req.query.q as string;
+    const query = req.query.query as string;
     if (!query) {
-      res.status(400).json({ error: 'Query parameter q is required' });
+      res.status(400).json({ error: 'Query parameter query is required' });
       return;
     }
     const customers = await CustomerService.search(query);

@@ -121,22 +121,46 @@ export const Customers: React.FC = () => {
     }
   };
 
-  const filtered = customers.filter(c => {
-    const term = searchTerm.toLowerCase();
-    const cleanTerm = term.replace(/\D/g, '');
-    return (
-      c.name.toLowerCase().includes(term) ||
-      c.cpf.toLowerCase().includes(term) ||
-      c.phone.includes(cleanTerm)
-    );
-  });
+  const [filteredCustomers, setFilteredCustomers] = useState<Customer[]>([]);
+  const [searching, setSearching] = useState(false);
+
+  const handleSearch = async (term: string) => {
+    setSearchTerm(term);
+    
+    if (!term.trim()) {
+      loadCustomers();
+      return;
+    }
+
+    try {
+      setSearching(true);
+      const response = await get<{customers: ApiCustomer[]}>(`/api/customers/search?query=${encodeURIComponent(term)}`);
+      setFilteredCustomers((response.customers || []).map((c: ApiCustomer) => ({
+        id: c.id,
+        name: c.name,
+        cpf: c.cpf || '',
+        phone: c.phone || '',
+        email: c.email || '',
+        address: c.address || '',
+        isVip: c.isVip,
+        createdAt: c.createdAt,
+      })));
+    } catch (e) {
+      console.error('Failed to search customers', e);
+      toast.error('Falha ao buscar clientes');
+    } finally {
+      setSearching(false);
+    }
+  };
+
+  const displayCustomers = searchTerm ? filteredCustomers : customers;
 
   const getAvatarGradient = (name: string) => {
      const gradients = ['from-blue-400 to-blue-600', 'from-purple-400 to-purple-600', 'from-pink-400 to-pink-600', 'from-green-400 to-green-600', 'from-orange-400 to-orange-600'];
      return gradients[name.length % gradients.length];
   };
 
-  if (loading) return <div className="flex items-center justify-center h-64 text-gray-400">Carregando...</div>;
+  if (loading || searching) return <div className="flex items-center justify-center h-64 text-gray-400">Carregando...</div>;
 
   return (
     <div className="space-y-6">
@@ -161,11 +185,11 @@ export const Customers: React.FC = () => {
          </div>
          <input type="text" placeholder="Buscar por nome, CPF ou telefone..."
             className="w-full bg-white pl-10 pr-4 py-3.5 rounded-lg border border-gray-200 text-sm outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-300 transition-all"
-            value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
+            value={searchTerm} onChange={e => handleSearch(e.target.value)} />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-        {filtered.map((customer) => (
+        {displayCustomers.map((customer) => (
           <div key={customer.id}
             className={`group relative bg-white rounded-xl p-5 shadow-sm border transition-all hover:shadow-md
                ${customer.isVip ? 'border-amber-200' : 'border-gray-100 hover:border-blue-100'}`}
@@ -223,12 +247,12 @@ export const Customers: React.FC = () => {
         ))}
       </div>
 
-      {filtered.length === 0 && (
+      {displayCustomers.length === 0 && (
          <div className="flex flex-col items-center justify-center py-20 text-center">
             <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mb-4">
                <Search size={32} className="text-gray-300" />
             </div>
-            <p className="text-gray-500 font-medium">Nenhum cliente encontrado.</p>
+            <p className="text-gray-500 font-medium">{searchTerm ? 'Nenhum cliente encontrado para a busca.' : 'Nenhum cliente registrado.'}</p>
          </div>
       )}
 

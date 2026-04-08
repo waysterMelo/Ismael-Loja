@@ -14,24 +14,35 @@ interface AuthContextType {
   isAdmin: boolean;
   logout: () => void;
   refreshUser: () => Promise<void>;
+  loading: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const token = localStorage.getItem('iwr_token');
-    const storedUser = localStorage.getItem('iwr_user');
 
-    if (token && storedUser) {
-      try {
-        setUser(JSON.parse(storedUser));
-      } catch {
-        localStorage.removeItem('iwr_user');
-        localStorage.removeItem('iwr_token');
-      }
+    if (token) {
+      // Buscar dados atualizados do backend ao invés de confiar no localStorage
+      get<{ user: User }>('/api/auth/me')
+        .then((response) => {
+          setUser(response.user);
+          localStorage.setItem('iwr_user', JSON.stringify(response.user));
+        })
+        .catch(() => {
+          // Token inválido ou expirado
+          localStorage.removeItem('iwr_token');
+          localStorage.removeItem('iwr_user');
+        })
+        .finally(() => {
+          setLoading(false);
+        });
+    } else {
+      setLoading(false);
     }
   }, []);
 
@@ -65,6 +76,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isAdmin: user?.role === 'ADMIN',
         logout,
         refreshUser,
+        loading,
       }}
     >
       {children}

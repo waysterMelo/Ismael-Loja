@@ -2,8 +2,20 @@ import { patch } from '../api/client';
 import { SaleStatus } from '../types';
 import { PromissoryNoteTemplate } from './PromissoryNoteTemplate';
 
+interface NoteData {
+  id: string;
+  customerName: string;
+  customerPhone: string;
+  customerCpf: string;
+  items: Array<{ id: string; description: string; quantity: number; price: number }>;
+  totalAmount: number;
+  dueDate: string;
+  issueDate: string;
+  status: SaleStatus;
+}
+
 interface Props {
-  note: any;
+  note: NoteData;
   onClose: () => void;
   onUpdate: () => void;
 }

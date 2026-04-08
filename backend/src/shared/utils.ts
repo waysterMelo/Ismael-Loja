@@ -13,6 +13,26 @@ export function verifyToken(token: string): { userId: string; email: string; rol
 
 export function sanitizePhone(phone: string): string {
   const digits = phone.replace(/\D/g, '');
-  if (digits.startsWith('55')) return digits;
-  return '55' + digits;
+
+  // Se já começa com 55 e tem 13 dígitos (55 + DDD + número), retornar como está
+  if (digits.startsWith('55') && digits.length === 13) {
+    return digits;
+  }
+
+  // Se tem 11 dígitos (DDD + número), adicionar 55
+  if (digits.length === 11 && !digits.startsWith('55')) {
+    return '55' + digits;
+  }
+
+  // Se tem 13 dígitos mas não começa com 55, algo está errado, mas tentar adicionar
+  if (digits.length === 13 && !digits.startsWith('55')) {
+    return '55' + digits;
+  }
+
+  // Caso padrão: adicionar 55
+  if (!digits.startsWith('55')) {
+    return '55' + digits;
+  }
+
+  return digits;
 }

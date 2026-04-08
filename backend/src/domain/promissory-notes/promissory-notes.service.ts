@@ -12,9 +12,14 @@ export class PromissoryNotesService {
       where.customerId = filters.customerId;
     }
     if (filters.startDate || filters.endDate) {
-      where.dueDate = {} as Prisma.DateTimeFilter;
-      if (filters.startDate) (where.dueDate as Prisma.DateTimeFilter).gte = filters.startDate;
-      if (filters.endDate) (where.dueDate as Prisma.DateTimeFilter).lte = filters.endDate;
+      const dateFilter: Prisma.DateTimeFilter = {};
+      if (filters.startDate) {
+        dateFilter.gte = filters.startDate;
+      }
+      if (filters.endDate) {
+        dateFilter.lte = filters.endDate;
+      }
+      where.dueDate = dateFilter;
     }
 
     const allNotes = await prisma.promissoryNote.findMany({

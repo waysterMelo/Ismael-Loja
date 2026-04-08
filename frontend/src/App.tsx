@@ -28,7 +28,19 @@ const AdminRoute = ({ children }: { children: React.ReactNode }) => {
 };
 
 function AppRoutes() {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, loading } = useAuth();
+
+  // Mostrar loading enquanto verifica autenticação
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-gray-50">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-gray-300 border-t-blue-600 rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-500 font-medium">Carregando...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <Routes>

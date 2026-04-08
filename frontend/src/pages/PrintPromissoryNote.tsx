@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { get } from '../api/client';
 import { PromissoryNoteTemplate } from '../components/PromissoryNoteTemplate';
+import { SaleStatus } from '../types';
 
 interface ApiNote {
   id: string;
@@ -56,7 +57,7 @@ export const PrintPromissoryNote: React.FC = () => {
         totalAmount: Number(note.totalAmount),
         dueDate: note.dueDate,
         issueDate: note.sale?.createdAt || note.dueDate,
-        status: note.status as any,
+        status: (note.status === 'PENDING' ? SaleStatus.PENDING : note.status === 'PAID' ? SaleStatus.PAID : SaleStatus.OVERDUE) as SaleStatus,
       }} />
     </div>
   );

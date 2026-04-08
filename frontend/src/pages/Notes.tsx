@@ -101,8 +101,8 @@ export const Notes: React.FC = () => {
       setLoading(true);
       const params = new URLSearchParams();
       if (dateFilter) {
-        const start = new Date(dateFilter.getFullYear(), dateFilter.getMonth(), dateFilter.getDate());
-        const end = new Date(dateFilter.getFullYear(), dateFilter.getMonth(), dateFilter.getDate() + 1);
+        const start = new Date(dateFilter.getFullYear(), dateFilter.getMonth(), dateFilter.getDate(), 0, 0, 0, 0);
+        const end = new Date(dateFilter.getFullYear(), dateFilter.getMonth(), dateFilter.getDate(), 23, 59, 59, 999);
         params.set('startDate', start.toISOString());
         params.set('endDate', end.toISOString());
       }
@@ -158,8 +158,25 @@ export const Notes: React.FC = () => {
   };
 
   const sanitizePhone = (p: string) => {
+    if (!p) return '';
     const digits = p.replace(/\D/g, '');
-    return digits.startsWith('55') ? digits : '55' + digits;
+    
+    // Se já começa com 55 e tem 13 dígitos (55 + DDD + número), retornar como está
+    if (digits.startsWith('55') && digits.length === 13) {
+      return digits;
+    }
+    
+    // Se tem 11 dígitos (DDD + número), adicionar 55
+    if (digits.length === 11 && !digits.startsWith('55')) {
+      return '55' + digits;
+    }
+    
+    // Caso padrão: adicionar 55
+    if (!digits.startsWith('55')) {
+      return '55' + digits;
+    }
+    
+    return digits;
   };
 
   const handleWhatsApp = async (note: ApiNote) => {
