@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Customer } from '../types';
-import { get, post, patch } from '../api/client';
+import { get, getWithParams, post, patch } from '../api/client';
 import { Plus, Search, Phone, Star, Mail, MapPin, X, Pen, Trash2 } from 'lucide-react';
 import { CustomerDetailsModal } from '../components/CustomerDetailsModal';
+import { Pagination } from '../components/Pagination';
 import { validateRequired, validateCPF, validateEmail, validatePhone, type ValidationErrors } from '../utils/validation';
 import { useToast } from '../context/ToastContext';
 import { useAuth } from '../context/AuthContext';
@@ -18,6 +19,18 @@ interface ApiCustomer {
   createdAt: string;
 }
 
+interface PaginatedResponse {
+  data: ApiCustomer[];
+  pagination: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+    hasNext: boolean;
+    hasPrev: boolean;
+  };
+}
+
 export const Customers: React.FC = () => {
   const { isAdmin } = useAuth();
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -26,6 +39,12 @@ export const Customers: React.FC = () => {
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(20);
+  const [totalPages, setTotalPages] = useState(0);
+  const [total, setTotal] = useState(0);
+  const [hasNext, setHasNext] = useState(false);
+  const [hasPrev, setHasPrev] = useState(false);
   const toast = useToast();
 
   const [formData, setFormData] = useState<Partial<Customer>>({
@@ -34,13 +53,13 @@ export const Customers: React.FC = () => {
 
   useEffect(() => {
     loadCustomers();
-  }, []);
+  }, [page, limit]);
 
   const loadCustomers = async () => {
     try {
       setLoading(true);
-      const response = await get<{customers: ApiCustomer[]}>('/api/customers');
-      setCustomers((response.customers || []).map((c: ApiCustomer) => ({
+      const response = await getWithParams<PaginatedResponse>('/api/customers', { page, limit });
+      setCustomers((response.data || []).map((c: ApiCustomer) => ({
         id: c.id,
         name: c.name,
         cpf: c.cpf || '',
@@ -50,6 +69,10 @@ export const Customers: React.FC = () => {
         isVip: c.isVip,
         createdAt: c.createdAt,
       })));
+      setTotalPages(response.pagination.totalPages);
+      setTotal(response.pagination.total);
+      setHasNext(response.pagination.hasNext);
+      setHasPrev(response.pagination.hasPrev);
     } catch (e) {
       console.error('Failed to load customers', e);
     } finally {
@@ -254,6 +277,25 @@ export const Customers: React.FC = () => {
             </div>
             <p className="text-gray-500 font-medium">{searchTerm ? 'Nenhum cliente encontrado para a busca.' : 'Nenhum cliente registrado.'}</p>
          </div>
+      )}
+
+      {/* Pagination */}
+      {!loading && customers.length > 0 && (
+        <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
+          <Pagination
+            page={page}
+            limit={limit}
+            total={total}
+            totalPages={totalPages}
+            hasNext={hasNext}
+            hasPrev={hasPrev}
+            onPageChange={setPage}
+            onLimitChange={(newLimit) => {
+              setLimit(newLimit);
+              setPage(1);
+            }}
+          />
+        </div>
       )}
 
       {/* Add/Edit Form Modal */}

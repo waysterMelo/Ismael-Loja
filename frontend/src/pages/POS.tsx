@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Plus, Trash2, ChevronRight, Tag, ShoppingBag, User, ArrowRight, Loader2 } from 'lucide-react';
 import { get, post } from '../api/client';
 import { useToast } from '../context/ToastContext';
+import { validateRequired, validateNumber, type ValidationErrors } from '../utils/validation';
 
 interface ApiCustomer {
   id: string;
@@ -19,6 +20,8 @@ export const POS: React.FC = () => {
   const [cart, setCart] = useState<Array<{ id: string; description: string; quantity: number; price: number }>>([]);
   const [itemDesc, setItemDesc] = useState('');
   const [itemPrice, setItemPrice] = useState('');
+  const [itemErrors, setItemErrors] = useState<ValidationErrors>({});
+  const [checkoutError, setCheckoutError] = useState<string | null>(null);
   const [generatedNote, setGeneratedNote] = useState<{id: string; dueDate: string; totalAmount: number} | null>(null);
   const [viewState, setViewState] = useState<'INPUT' | 'SUCCESS'>('INPUT');
   const [loading, setLoading] = useState(false);
@@ -50,8 +53,23 @@ export const POS: React.FC = () => {
 
   const addToCart = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!itemDesc || !itemPrice) return;
-    setCart([...cart, { id: Date.now().toString(), description: itemDesc, price: parseFloat(itemPrice), quantity: 1 }]);
+    
+    const errors: ValidationErrors = {};
+    const descErr = validateRequired(itemDesc, 'Descrição');
+    if (descErr) errors.description = descErr;
+    
+    const priceVal = parseFloat(itemPrice);
+    const priceErr = validateNumber(priceVal, 0.01, 'Valor');
+    if (priceErr) errors.price = priceErr;
+    if (isNaN(priceVal) || priceVal <= 0) errors.price = 'Valor deve ser maior que zero';
+    
+    if (Object.keys(errors).length > 0) {
+      setItemErrors(errors);
+      return;
+    }
+    
+    setItemErrors({});
+    setCart([...cart, { id: Date.now().toString(), description: itemDesc, price: priceVal, quantity: 1 }]);
     setItemDesc('');
     setItemPrice('');
   };
@@ -59,14 +77,17 @@ export const POS: React.FC = () => {
   const total = cart.reduce((acc, item) => acc + item.price * item.quantity, 0);
 
   const handleCheckout = async () => {
+    setCheckoutError(null);
+    
     if (!selectedCustomer) {
-      toast.error('Selecione um cliente antes de finalizar');
+      setCheckoutError('Selecione um cliente antes de finalizar');
       return;
     }
     if (cart.length === 0) {
-      toast.error('Carrinho vazio');
+      setCheckoutError('Adicione pelo menos um item ao carrinho');
       return;
     }
+    
     setLoading(true);
     try {
       const response = await post<SaleResponse>('/api/sales', {
@@ -78,7 +99,9 @@ export const POS: React.FC = () => {
       setCart([]);
       toast.success('Venda finalizada com sucesso');
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : 'Erro ao finalizar venda');
+      const message = err instanceof Error ? err.message : 'Erro ao finalizar venda';
+      setCheckoutError(message);
+      toast.error(message);
     } finally {
       setLoading(false);
     }
@@ -122,8 +145,16 @@ export const POS: React.FC = () => {
                    <span className="text-xs font-bold uppercase tracking-widest">Cliente</span>
                 </div>
                 <div className="relative">
-                   <select className="w-full bg-transparent border-b border-gray-200 py-3 pr-8 text-xl font-serif text-gray-900 outline-none appearance-none cursor-pointer hover:border-gray-500 transition-colors"
-                      onChange={(e) => setSelectedCustomer(customers.find(c => c.id === e.target.value) || null)}
+                   <select 
+                      className={`w-full bg-transparent border-b py-3 pr-8 text-xl font-serif text-gray-900 outline-none appearance-none cursor-pointer transition-colors ${
+                        checkoutError && !selectedCustomer 
+                          ? 'border-red-500' 
+                          : 'border-gray-200 hover:border-gray-500'
+                      }`}
+                      onChange={(e) => {
+                        setSelectedCustomer(customers.find(c => c.id === e.target.value) || null);
+                        if (checkoutError) setCheckoutError(null);
+                      }}
                       value={selectedCustomer?.id || ''}
                    >
                       <option value="">Selecione um cliente...</option>
@@ -131,6 +162,7 @@ export const POS: React.FC = () => {
                    </select>
                    <ChevronRight size={20} className="absolute right-0 top-1/2 -translate-y-1/2 rotate-90 text-gray-400 pointer-events-none" />
                 </div>
+                {checkoutError && !selectedCustomer && <p className="text-xs text-red-600 mt-1">{checkoutError}</p>}
              </div>
              <form onSubmit={addToCart} className="space-y-8">
                 <div className="space-y-4">
@@ -138,15 +170,41 @@ export const POS: React.FC = () => {
                       <Tag size={16} />
                       <span className="text-xs font-bold uppercase tracking-widest">Item</span>
                    </div>
-                   <input autoFocus placeholder="Descrição da peça..." className="w-full bg-transparent border-b border-gray-200 py-3 text-xl font-medium text-gray-900 outline-none placeholder:text-gray-300 focus:border-gray-900 transition-colors" value={itemDesc} onChange={e => setItemDesc(e.target.value)} />
+                   <input 
+                      autoFocus 
+                      placeholder="Descrição da peça..." 
+                      className={`w-full bg-transparent border-b py-3 text-xl font-medium text-gray-900 outline-none placeholder:text-gray-300 focus:border-gray-900 transition-colors ${
+                        itemErrors.description ? 'border-red-500' : 'border-gray-200 hover:border-gray-500'
+                      }`} 
+                      value={itemDesc} 
+                      onChange={e => {
+                        setItemDesc(e.target.value);
+                        if (itemErrors.description) setItemErrors({ ...itemErrors, description: '' });
+                      }} 
+                   />
+                   {itemErrors.description && <p className="text-xs text-red-600 mt-1">{itemErrors.description}</p>}
                 </div>
                 <div className="flex items-end gap-6">
                    <div className="flex-1 space-y-4">
                       <span className="text-xs font-bold uppercase tracking-widest text-gray-500">Valor</span>
                       <div className="flex items-center">
                          <span className="text-xl font-serif text-gray-400 mr-2">R$</span>
-                         <input type="number" placeholder="0,00" className="w-full bg-transparent border-b border-gray-200 py-3 text-3xl font-serif text-gray-900 outline-none placeholder:text-gray-200 focus:border-gray-900 transition-colors" value={itemPrice} onChange={e => setItemPrice(e.target.value)} />
+                         <input 
+                            type="number" 
+                            step="0.01"
+                            min="0.01"
+                            placeholder="0,00" 
+                            className={`w-full bg-transparent border-b py-3 text-3xl font-serif text-gray-900 outline-none placeholder:text-gray-200 focus:border-gray-900 transition-colors ${
+                              itemErrors.price ? 'border-red-500' : 'border-gray-200 hover:border-gray-500'
+                            }`} 
+                            value={itemPrice} 
+                            onChange={e => {
+                              setItemPrice(e.target.value);
+                              if (itemErrors.price) setItemErrors({ ...itemErrors, price: '' });
+                            }} 
+                         />
                       </div>
+                      {itemErrors.price && <p className="text-xs text-red-600 mt-1">{itemErrors.price}</p>}
                    </div>
                    <button type="submit" className="h-14 w-14 border border-gray-900 rounded-full flex items-center justify-center hover:bg-gray-900 hover:text-white transition-all">
                       <Plus size={24} />
@@ -202,6 +260,9 @@ export const POS: React.FC = () => {
                 <span className="text-xs text-white/50 uppercase tracking-widest">Total</span>
                 <span className="text-4xl font-serif">{formatMoney(total)}</span>
              </div>
+             {checkoutError && cart.length === 0 && (
+                <p className="text-xs text-red-400 mb-3">{checkoutError}</p>
+             )}
              <button onClick={handleCheckout} disabled={cart.length === 0 || !selectedCustomer || loading}
                className="w-full py-5 bg-white text-[#121212] font-bold text-sm uppercase tracking-widest hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3">
                {loading ? <Loader2 className="animate-spin" size={18} /> : 'Finalizar Venda'} <ArrowRight size={18} />

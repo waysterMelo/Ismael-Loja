@@ -10,7 +10,10 @@
     "prisma:migrate": "prisma migrate deploy",
     "prisma:dev": "prisma migrate dev",
     "seed": "tsx prisma/seed.ts",
-    "overdue:check": "tsx src/domain/promissory-notes/overdue-cron.ts"
+    "overdue:check": "tsx src/domain/promissory-notes/overdue-cron.ts",
+    "test": "vitest",
+    "test:run": "vitest run",
+    "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
     "@prisma/client": "^6.5.0",
@@ -18,6 +21,7 @@
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
+    "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.2",
     "zod": "^3.24.2"
   },
@@ -27,9 +31,12 @@
     "@types/express": "^5.0.1",
     "@types/jsonwebtoken": "^9.0.9",
     "@types/node": "^22.13.0",
+    "@types/supertest": "^7.2.0",
     "prisma": "^6.5.0",
+    "supertest": "^7.2.2",
     "ts-node": "^10.9.2",
     "tsx": "^4.19.3",
-    "typescript": "^5.8.2"
+    "typescript": "^5.8.2",
+    "vitest": "^4.1.4"
   }
 }

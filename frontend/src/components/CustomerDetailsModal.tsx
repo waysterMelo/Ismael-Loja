@@ -17,7 +17,6 @@ interface ApiNote {
   totalAmount: string | number;
   dueDate: string;
   status: string;
-  whatsappSent: boolean;
   sale: {
     items: ApiNoteItem[];
     createdAt: string;
@@ -84,12 +83,6 @@ export const CustomerDetailsModal: React.FC<Props> = ({ customer, onClose }) => 
      }
   };
 
-  const handleWhatsApp = useCallback(() => {
-     if (!customer) return;
-     const phone = sanitizePhone(customer.phone);
-     window.open(`https://wa.me/${phone}`, '_blank');
-  }, [customer]);
-
   if (!customer) return null;
 
   return createPortal(
@@ -120,12 +113,6 @@ export const CustomerDetailsModal: React.FC<Props> = ({ customer, onClose }) => 
                <p className="text-xs text-gray-500 mt-1">{customer.email || 'Sem e-mail'}</p>
 
                <div className="flex items-center gap-4 mt-5 w-full justify-center">
-                  <button onClick={handleWhatsApp} className="flex flex-col items-center gap-1.5 group">
-                     <div className="w-10 h-10 rounded-full bg-green-500 text-white flex items-center justify-center shadow-lg shadow-green-200 group-hover:scale-110 transition-transform">
-                        <MessageCircle size={18} fill="currentColor" className="text-white" />
-                     </div>
-                     <span className="text-[10px] font-medium text-green-600">WhatsApp</span>
-                  </button>
                   <button className="flex flex-col items-center gap-1.5 group">
                      <div className="w-10 h-10 rounded-full bg-blue-500 text-white flex items-center justify-center shadow-lg shadow-blue-200 group-hover:scale-110 transition-transform">
                         <Phone size={18} fill="currentColor" />

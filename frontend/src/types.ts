@@ -4,6 +4,17 @@ export enum SaleStatus {
   OVERDUE = 'OVERDUE'
 }
 
+export interface User {
+  id: string;
+  name: string;
+  email: string;
+  role: 'ADMIN' | 'OPERATOR';
+  active: boolean;
+  lastLoginAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface Customer {
   id: string;
   name: string;
@@ -34,7 +45,6 @@ export interface PromissoryNote {
   dueDate: string;
   status: SaleStatus;
   notes?: string;
-  whatsappSent?: boolean;
 }
 
 export interface DashboardStats {

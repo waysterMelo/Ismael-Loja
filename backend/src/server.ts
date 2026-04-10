@@ -1,12 +1,14 @@
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
+import helmet from 'helmet';
 import { authRouter } from './domain/auth/auth.router';
 import { customersRouter } from './domain/customers/customers.router';
 import { salesRouter } from './domain/sales/sales.router';
 import { promissoryNotesRouter } from './domain/promissory-notes/promissory-notes.router';
 import { dashboardRouter } from './domain/common/dashboard.router';
 import { auditLogRouter } from './domain/audit-log/audit-log.router';
+import { usersRouter } from './domain/users/users.router';
 import { errorHandler } from './shared/middleware';
 
 const app = express();
@@ -14,6 +16,7 @@ const PORT = parseInt(process.env.PORT || '3001', 10);
 
 // CORS configuration
 const allowedOrigins = process.env.CORS_ORIGIN?.split(',') || ['*'];
+app.use(helmet());
 app.use(cors({
   origin: allowedOrigins.includes('*') ? '*' : allowedOrigins,
   credentials: true,
@@ -72,6 +75,7 @@ app.use('/api/sales', salesRouter);
 app.use('/api/promissory-notes', promissoryNotesRouter);
 app.use('/api/dashboard', dashboardRouter);
 app.use('/api/audit-log', auditLogRouter);
+app.use('/api/users', usersRouter);
 
 // Global error handler (must be last)
 app.use(errorHandler);

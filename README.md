@@ -52,7 +52,6 @@ O sistema estará disponível em:
 | Listar títulos | ✅ | ✅ |
 | Ver título (detalhes) | ✅ | ✅ |
 | Baixar título | ✅ | ✅ |
-| Marcar WhatsApp enviado | ✅ | ❌ |
 | Dashboard | ✅ | ❌ |
 | Auditoria | ✅ | ❌ |
 
@@ -86,13 +85,31 @@ O sistema estará disponível em:
 - `GET /api/promissory-notes` - Listar títulos com filtros
 - `GET /api/promissory-notes/:id` - Buscar título por ID
 - `PATCH /api/promissory-notes/:id/pay` - Baixar como pago
-- `PATCH /api/promissory-notes/:id/mark-whatsapp` - Marcar WhatsApp enviado (ADMIN apenas)
 
 ### Dashboard
 - `GET /api/dashboard` - Métricas para painel (ADMIN apenas)
 
 ### Auditoria
 - `GET /api/audit-log` - Logs de ações do sistema (ADMIN apenas)
+
+### Usuários (ADMIN apenas)
+- `GET /api/users` - Listar usuários com paginação
+- `POST /api/users` - Criar usuário
+- `GET /api/users/:id` - Buscar usuário por ID
+- `PATCH /api/users/:id` - Editar usuário
+- `PATCH /api/users/:id/deactivate` - Desativar usuário
+- `PATCH /api/users/:id/activate` - Ativar usuário
+- `PATCH /api/users/:id/reset-password` - Resetar senha
+
+### Exportação CSV
+- `GET /api/customers/export-csv` - Exportar clientes para CSV
+- `GET /api/promissory-notes/export-csv` - Exportar títulos para CSV
+
+### Soft Delete
+- `DELETE /api/customers/:id` - Soft delete de cliente
+- `PATCH /api/customers/:id/restore` - Restaurar cliente
+- `DELETE /api/sales/:id` - Soft delete de venda
+- `PATCH /api/sales/:id/restore` - Restaurar venda
 
 ### Health Check
 - `GET /api/health` - Status do servidor (uptime, memória, versão)
@@ -269,7 +286,6 @@ vercel --prod
 - Dashboard com dados reais do banco
 - Frontend integrado via API (sem localStorage)
 - React Router para navegação real
-- WhatsApp com saneamento correto de telefone
 - Bug fix: busca por CPF e telefone
 - Bug fix: data filter na carteira
 - Bug fix: logout funcional
@@ -297,6 +313,46 @@ vercel --prod
 - Scripts de backup e restore
 - Documentação operacional completa
 
-## Diretriz de Engenharia
+### Sprint 4 ✅ - Melhorias Críticas e Produção
+- **CRUD de Usuários** completo (criar, editar, ativar/desativar, resetar senha)
+- **Paginação** em todas as listagens (clientes, vendas, títulos, audit logs, usuários)
+- **Componente de paginação** reutilizável no frontend
+- **Race condition corrigida** no Dashboard (updateMany ao invés de updates individuais)
+- **Código morto removido** (zod-schema.ts não utilizado)
+- **Tratamento de erros padronizado** em todos os controllers (error-handler helper)
+- **Soft delete** para clientes e vendas (com restore)
+- **overdue-cron.ts otimizado** para reutilizar OverdueJobService
+- **Exportação CSV** para clientes e títulos
+- **Testes automatizados** configurados com Vitest
+- **lastLoginAt** rastreado no login
+
+### Sprint 5 ✅ - Validações e Tipagem TypeScript
+- **Validações de formulário** com feedback visual (clientes, usuários, PDV)
+- **Validação de CPF** com dígitos verificadores reais
+- **Validação de email, telefone e senha** em todos os formulários
+- **PDV com validações visuais** em descrição, valor e seleção de cliente
+- **Mensagens de erro inline** nos campos
+- **Tipagem TypeScript** revisada - zero `any` no código
+- **Interfaces tipadas** para exportação CSV
+
+## Testes Automatizados
+
+### Backend
+```bash
+# Rodar testes em modo watch
+npm test
+
+# Rodar testes uma vez
+npm run test:run
+
+# Rodar testes com cobertura de código
+npm run test:coverage
+```
+
+### Cobertura de Testes
+- CustomerService: CRUD, busca por CPF duplicado, paginação
+- UserService: CRUD, ativação/desativação, reset de senha, validações
+
+## Melhorias de Produção Implementadas
 
 Ver `txt.txt`

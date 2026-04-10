@@ -7,9 +7,9 @@ export const promissoryNotesRouter = Router();
 
 promissoryNotesRouter.use(authMiddleware);
 promissoryNotesRouter.get('/', PromissoryNotesController.list);
+promissoryNotesRouter.get('/export-csv', PromissoryNotesController.exportCSV);
 promissoryNotesRouter.get('/:id', PromissoryNotesController.getById);
 promissoryNotesRouter.patch('/:id/pay', PromissoryNotesController.pay);
-promissoryNotesRouter.patch('/:id/mark-whatsapp', roleGuard('ADMIN'), PromissoryNotesController.markWhatsApp);
 
 // Cron job endpoint - marca vencidos como OVERDUE
 promissoryNotesRouter.post('/mark-overdue', roleGuard('ADMIN'), async (_req, res) => {

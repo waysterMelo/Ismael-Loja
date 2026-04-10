@@ -1,4 +1,4 @@
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+const API_URL = import.meta.env.VITE_API_BASE_URL || '/api';
 
 export interface ApiResponse<T> {
   data: T;
@@ -41,6 +41,15 @@ async function request<T>(
 
 export function get<T>(endpoint: string): Promise<T> {
   return request<T>(endpoint, { method: 'GET' });
+}
+
+export function getWithParams<T>(endpoint: string, params: Record<string, string | number>): Promise<T> {
+  const searchParams = new URLSearchParams();
+  Object.entries(params).forEach(([key, value]) => {
+    searchParams.append(key, String(value));
+  });
+  const url = params ? `${endpoint}?${searchParams.toString()}` : endpoint;
+  return request<T>(url, { method: 'GET' });
 }
 
 export function post<T>(endpoint: string, body?: Record<string, unknown>): Promise<T> {

@@ -1,5 +1,7 @@
 import { z } from 'zod';
-import { prisma } from '../../shared/prisma';
+import { paginate, PaginationParams, PaginatedResult } from '../../shared/pagination';
+import { CustomerRepository } from './customers.repository';
+import { AuditLogRepository } from '../audit-log/audit-log.repository';
 
 const createCustomerSchema = z.object({
   name: z.string().min(1).max(255),
@@ -12,57 +14,53 @@ const createCustomerSchema = z.object({
 
 export class CustomerService {
   static async getById(id: string) {
-    const customer = await prisma.customer.findUnique({
-      where: { id },
-      include: {
-        sales: { select: { id: true, totalAmount: true, status: true, createdAt: true } },
-        promissoryNotes: { select: { id: true, totalAmount: true, status: true, dueDate: true } },
-      },
-    });
+    const customer = await CustomerRepository.findById(id);
     if (!customer) {
       throw Object.assign(new Error('Customer not found'), { statusCode: 404 });
     }
     return customer;
   }
 
-  static async listAll() {
-    return prisma.customer.findMany({
-      orderBy: [{ name: 'asc' }],
-      include: {
-        sales: { select: { totalAmount: true, status: true, createdAt: true } },
-      },
-    });
+  static async listAll(pagination: PaginationParams) {
+    const { page = 1, limit = 20 } = pagination;
+    const skip = (page - 1) * limit;
+
+    const [customers, total] = await Promise.all([
+      CustomerRepository.findMany(skip, limit),
+      CustomerRepository.count(),
+    ]);
+
+    return {
+      data: customers,
+      pagination: paginate({ page, limit }, total),
+    };
   }
 
   static async create(data: { name: string; cpf?: string; email?: string; phone?: string; address?: string; isVip?: boolean }, userId: string) {
     const parsed = createCustomerSchema.parse(data);
 
     if (parsed.cpf) {
-      const existing = await prisma.customer.findFirst({ where: { cpf: parsed.cpf.replace(/\D/g, '') } });
+      const existing = await CustomerRepository.findByCpf(parsed.cpf.replace(/\D/g, ''));
       if (existing) {
         throw Object.assign(new Error('Customer with this CPF already exists'), { statusCode: 409 });
       }
     }
 
-    const customer = await prisma.customer.create({
-      data: {
-        name: parsed.name,
-        cpf: parsed.cpf ? parsed.cpf.replace(/\D/g, '') : null,
-        phone: parsed.phone || null,
-        email: parsed.email || null,
-        address: parsed.address || null,
-        isVip: parsed.isVip || false,
-      },
+    const customer = await CustomerRepository.create({
+      name: parsed.name,
+      cpf: parsed.cpf ? parsed.cpf.replace(/\D/g, '') : null,
+      phone: parsed.phone || null,
+      email: parsed.email || null,
+      address: parsed.address || null,
+      isVip: parsed.isVip || false,
     });
 
-    await prisma.auditLog.create({
-      data: {
-        userId,
-        action: 'CREATE_CUSTOMER',
-        entity: 'Customer',
-        entityId: customer.id,
-        payload: JSON.stringify({ name: customer.name, cpf: customer.cpf }),
-      },
+    await AuditLogRepository.create({
+      userId,
+      action: 'CREATE_CUSTOMER',
+      entity: 'Customer',
+      entityId: customer.id,
+      payload: JSON.stringify({ name: customer.name, cpf: customer.cpf }),
     });
 
     return customer;
@@ -71,62 +69,89 @@ export class CustomerService {
   static async search(query: string) {
     const term = query.toLowerCase();
     const digitOnly = query.replace(/\D/g, '');
-    return prisma.customer.findMany({
-      where: {
-        OR: [
-          { name: { contains: term, mode: 'insensitive' } },
-          { email: { contains: term, mode: 'insensitive' } },
-          { cpf: { contains: digitOnly, mode: 'insensitive' } },
-          { phone: { contains: digitOnly, mode: 'insensitive' } },
-        ],
-      },
-      orderBy: [{ name: 'asc' }],
-    });
+    return CustomerRepository.search(term, digitOnly);
   }
 
   static async update(id: string, data: { name?: string; cpf?: string; phone?: string; email?: string; address?: string; isVip?: boolean }, userId: string) {
-    const existing = await prisma.customer.findUnique({ where: { id } });
+    const existing = await CustomerRepository.findUnique(id);
     if (!existing) {
       throw Object.assign(new Error('Customer not found'), { statusCode: 404 });
     }
 
     if (data.cpf && data.cpf.replace(/\D/g, '') !== existing.cpf?.replace(/\D/g, '')) {
-      const dup = await prisma.customer.findFirst({ where: { cpf: data.cpf.replace(/\D/g, '') } });
+      const dup = await CustomerRepository.findByCpf(data.cpf.replace(/\D/g, ''));
       if (dup) {
         throw Object.assign(new Error('Customer with this CPF already exists'), { statusCode: 409 });
       }
     }
 
-    const customer = await prisma.customer.update({
-      where: { id },
-      data: {
-        name: data.name ?? existing.name,
-        cpf: data.cpf !== undefined ? data.cpf.replace(/\D/g, '') : existing.cpf,
-        phone: data.phone ?? existing.phone,
-        email: data.email ?? existing.email,
-        address: data.address ?? existing.address,
-        isVip: data.isVip !== undefined ? data.isVip : existing.isVip,
-      },
+    const customer = await CustomerRepository.update(id, {
+      name: data.name ?? existing.name,
+      cpf: data.cpf !== undefined ? data.cpf.replace(/\D/g, '') : existing.cpf,
+      phone: data.phone ?? existing.phone,
+      email: data.email ?? existing.email,
+      address: data.address ?? existing.address,
+      isVip: data.isVip !== undefined ? data.isVip : existing.isVip,
     });
 
-    await prisma.auditLog.create({
-      data: {
-        userId,
-        action: 'UPDATE_CUSTOMER',
-        entity: 'Customer',
-        entityId: customer.id,
-        payload: JSON.stringify({ name: customer.name, cpf: customer.cpf }),
-      },
+    await AuditLogRepository.create({
+      userId,
+      action: 'UPDATE_CUSTOMER',
+      entity: 'Customer',
+      entityId: customer.id,
+      payload: JSON.stringify({ name: customer.name, cpf: customer.cpf }),
     });
 
     return customer;
   }
 
   static async getNotesByCustomerId(customerId: string) {
-    return prisma.promissoryNote.findMany({
-      where: { customerId },
-      include: { sale: { include: { items: true } } },
-      orderBy: [{ createdAt: 'desc' }],
+    return CustomerRepository.getNotesByCustomerId(customerId);
+  }
+
+  static async softDelete(id: string, userId: string) {
+    const existing = await CustomerRepository.findUnique(id);
+    if (!existing) {
+      throw Object.assign(new Error('Customer not found'), { statusCode: 404 });
+    }
+
+    if (existing.deletedAt) {
+      throw Object.assign(new Error('Customer already deleted'), { statusCode: 400 });
+    }
+
+    const customer = await CustomerRepository.update(id, { deletedAt: new Date() });
+
+    await AuditLogRepository.create({
+      userId,
+      action: 'DELETE_CUSTOMER',
+      entity: 'Customer',
+      entityId: customer.id,
+      payload: JSON.stringify({ name: customer.name, cpf: customer.cpf }),
     });
+
+    return customer;
+  }
+
+  static async restore(id: string, userId: string) {
+    const existing = await CustomerRepository.findUnique(id);
+    if (!existing) {
+      throw Object.assign(new Error('Customer not found'), { statusCode: 404 });
+    }
+
+    if (!existing.deletedAt) {
+      throw Object.assign(new Error('Customer is not deleted'), { statusCode: 400 });
+    }
+
+    const customer = await CustomerRepository.update(id, { deletedAt: null });
+
+    await AuditLogRepository.create({
+      userId,
+      action: 'RESTORE_CUSTOMER',
+      entity: 'Customer',
+      entityId: customer.id,
+      payload: JSON.stringify({ name: customer.name, cpf: customer.cpf }),
+    });
+
+    return customer;
   }
 }

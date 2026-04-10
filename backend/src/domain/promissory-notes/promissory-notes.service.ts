@@ -1,8 +1,12 @@
-import { prisma } from '../../shared/prisma';
 import { SaleStatus, Prisma } from '@prisma/client';
+import { paginate, PaginationParams } from '../../shared/pagination';
+import { PromissoryNoteRepository } from './promissory-notes.repository';
 
 export class PromissoryNotesService {
-  static async list(filters: { status?: string; customerId?: string; startDate?: Date; endDate?: Date }) {
+  static async list(filters: { status?: string; customerId?: string; startDate?: Date; endDate?: Date }, pagination: PaginationParams) {
+    const { page = 1, limit = 20 } = pagination;
+    const skip = (page - 1) * limit;
+
     const where: Prisma.PromissoryNoteWhereInput = {};
 
     if (filters.status) {
@@ -22,67 +26,52 @@ export class PromissoryNotesService {
       where.dueDate = dateFilter;
     }
 
-    const allNotes = await prisma.promissoryNote.findMany({
-      where: where,
-      include: { customer: true, sale: { include: { items: true } } },
-      orderBy: [{ dueDate: 'asc' }],
-    });
+    const [allNotes, total] = await Promise.all([
+      PromissoryNoteRepository.findMany(where, skip, limit),
+      PromissoryNoteRepository.count(where),
+    ]);
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    return allNotes.map((note) => {
+    const notes = allNotes.map((note) => {
       const dueDate = new Date(note.dueDate);
       dueDate.setHours(0, 0, 0, 0);
 
       if (note.status !== SaleStatus.PAID && dueDate < today) {
         if (note.status === SaleStatus.PENDING) {
-          prisma.promissoryNote
-            .update({ where: { id: note.id }, data: { status: SaleStatus.OVERDUE } })
-            .catch(() => {});
           return { ...note, status: SaleStatus.OVERDUE };
         }
       }
       return note;
     });
+
+    // Atualizar status vencidos em background (sem bloquear resposta)
+    const overdueNotes = notes.filter(n => n.status === SaleStatus.OVERDUE && n.id);
+    if (overdueNotes.length > 0) {
+      PromissoryNotesService._markOverdueBatch(overdueNotes.map(n => n.id)).catch(() => {});
+    }
+
+    return {
+      data: notes,
+      pagination: paginate({ page, limit }, total),
+    };
+  }
+
+  // Método interno para atualizar status vencidos em lote
+  private static async _markOverdueBatch(ids: string[]) {
+    if (ids.length === 0) return;
+    await PromissoryNoteRepository.updateManyStatus(ids, SaleStatus.OVERDUE).catch(() => {});
   }
 
   static async getById(id: string) {
-    return prisma.promissoryNote.findUnique({
-      where: { id },
-      include: { customer: true, sale: { include: { items: true } } },
-    });
+    return PromissoryNoteRepository.findById(id);
   }
 
   static async pay(id: string, userId: string) {
-    const result = await prisma.$transaction(async (tx) => {
-      const note = await tx.promissoryNote.update({
-        where: { id },
-        data: { status: SaleStatus.PAID, paidAt: new Date() },
-      });
-
-      await tx.sale.update({ where: { id: note.saleId }, data: { status: SaleStatus.PAID } });
-
-      await tx.auditLog.create({
-        data: {
-          userId,
-          action: 'PAY_PROMISSORY_NOTE',
-          entity: 'PromissoryNote',
-          entityId: id,
-          payload: JSON.stringify({ titleId: id, saleId: note.saleId, paidAt: new Date() }),
-        },
-      });
-
-      return note;
-    });
+    const result = await PromissoryNoteRepository.pay(id, userId);
 
     return result;
   }
 
-  static async markWhatsApp(id: string) {
-    return prisma.promissoryNote.update({
-      where: { id },
-      data: { whatsappSent: true, whatsappSentAt: new Date() },
-    });
-  }
 }

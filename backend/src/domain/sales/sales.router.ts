@@ -8,3 +8,5 @@ salesRouter.use(authMiddleware);
 salesRouter.post('/', SalesController.create);
 salesRouter.get('/', roleGuard('ADMIN'), SalesController.list);
 salesRouter.get('/:id', SalesController.getById);
+salesRouter.delete('/:id', roleGuard('ADMIN'), SalesController.softDelete);
+salesRouter.patch('/:id/restore', roleGuard('ADMIN'), SalesController.restore);

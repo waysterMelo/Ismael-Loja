@@ -28,12 +28,6 @@ const sanitizePhone = (p: string) => {
 export const PromissoryNoteModal: React.FC<Props> = ({ note, onClose, onUpdate }) => {
   if (!note) return null;
 
-  const handleWhatsApp = () => {
-     const phone = sanitizePhone(note.customerPhone);
-     const msg = `Olá ${note.customerName}, segue sua nota promissória da IWR Moda no valor de R$ ${note.totalAmount}.`;
-     window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, '_blank');
-  };
-
   const handlePay = async () => {
      try {
        await patch(`/api/promissory-notes/${note.id}/pay`, {});
@@ -62,12 +56,9 @@ export const PromissoryNoteModal: React.FC<Props> = ({ note, onClose, onUpdate }
               <PromissoryNoteTemplate note={note} />
            </div>
         </div>
-        <div className="p-4 bg-white border-t border-gray-200 grid grid-cols-3 gap-3">
+        <div className="p-4 bg-white border-t border-gray-200 grid grid-cols-2 gap-3">
            <button onClick={() => window.print()} className="flex flex-col items-center justify-center py-2 rounded-xl text-blue-600 hover:bg-blue-50 transition-colors">
               <span className="text-[10px] font-medium mb-1">Imprimir</span>
-           </button>
-           <button onClick={handleWhatsApp} className="flex flex-col items-center justify-center py-2 rounded-xl text-green-600 hover:bg-green-50 transition-colors">
-              <span className="text-[10px] font-medium mb-1">WhatsApp</span>
            </button>
            {note.status !== SaleStatus.PAID ? (
               <button onClick={handlePay} className="bg-black text-white rounded-xl font-bold text-sm shadow-lg flex items-center justify-center gap-2 hover:bg-gray-700">

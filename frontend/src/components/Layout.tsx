@@ -1,5 +1,5 @@
 import { useNavigate, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Users, FileText, ShoppingBag, LogOut, Activity } from 'lucide-react';
+import { LayoutDashboard, Users, FileText, ShoppingBag, LogOut, Activity, UserCog } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 interface LayoutProps {
@@ -17,6 +17,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
     { id: 'pos', label: 'Vendas', icon: <ShoppingBag size={20} strokeWidth={1.5} />, path: '/pos', adminOnly: false },
     { id: 'notes', label: 'Títulos e Notas', icon: <FileText size={20} strokeWidth={1.5} />, path: '/notes', adminOnly: false },
     { id: 'customers', label: 'Clientes', icon: <Users size={20} strokeWidth={1.5} />, path: '/customers', adminOnly: false },
+    { id: 'users', label: 'Usuários', icon: <UserCog size={20} strokeWidth={1.5} />, path: '/users', adminOnly: true },
     { id: 'audit', label: 'Auditoria', icon: <Activity size={20} strokeWidth={1.5} />, path: '/audit', adminOnly: true },
   ];
 

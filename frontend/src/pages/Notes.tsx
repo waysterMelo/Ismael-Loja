@@ -12,7 +12,6 @@ interface ApiNote {
   totalAmount: number | string;
   dueDate: string;
   status: string;
-  whatsappSent: boolean;
   sale?: {
     items: { id: string; description: string; quantity: number; price: number | string }[];
   };
@@ -155,41 +154,6 @@ export const Notes: React.FC = () => {
     } catch {
       toast.error('Falha ao baixar título');
     }
-  };
-
-  const sanitizePhone = (p: string) => {
-    if (!p) return '';
-    const digits = p.replace(/\D/g, '');
-    
-    // Se já começa com 55 e tem 13 dígitos (55 + DDD + número), retornar como está
-    if (digits.startsWith('55') && digits.length === 13) {
-      return digits;
-    }
-    
-    // Se tem 11 dígitos (DDD + número), adicionar 55
-    if (digits.length === 11 && !digits.startsWith('55')) {
-      return '55' + digits;
-    }
-    
-    // Caso padrão: adicionar 55
-    if (!digits.startsWith('55')) {
-      return '55' + digits;
-    }
-    
-    return digits;
-  };
-
-  const handleWhatsApp = async (note: ApiNote) => {
-    const phone = sanitizePhone(note.customer?.phone || '');
-    if (!phone || phone.length < 12) {
-      toast.error('Telefone do cliente inválido para WhatsApp');
-      return;
-    }
-    const msg = `Olá ${note.customer?.name}, segue sua nota promissória da IWR Moda no valor de ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(note.totalAmount))}.`;
-    window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, '_blank');
-    try {
-      await patch(`/api/promissory-notes/${note.id}/mark-whatsapp`, {});
-    } catch {}
   };
 
   const formatMoney = (val: number | string) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(val));
@@ -381,12 +345,9 @@ export const Notes: React.FC = () => {
                   }} />
                </div>
             </div>
-            <div className="p-4 bg-white border-t border-gray-200 grid grid-cols-3 gap-3">
+            <div className="p-4 bg-white border-t border-gray-200 grid grid-cols-2 gap-3">
                <button onClick={() => window.open(`/print-note?id=${selectedNote.id}`, '_blank')} className="flex flex-col items-center justify-center py-2 rounded-xl text-blue-600 hover:bg-blue-50 transition-colors">
                   <span className="text-[10px] font-medium mb-1">Imprimir</span>
-               </button>
-               <button onClick={() => handleWhatsApp(selectedNote)} className="flex flex-col items-center justify-center py-2 rounded-xl text-green-600 hover:bg-green-50 transition-colors">
-                  <span className="text-[10px] font-medium mb-1">WhatsApp</span>
                </button>
                {selectedNote.status !== SaleStatus.PAID ? (
                   <button onClick={() => handlePay(selectedNote.id)} className="bg-black text-white rounded-xl font-bold text-sm shadow-lg flex items-center justify-center gap-2 hover:bg-gray-700">

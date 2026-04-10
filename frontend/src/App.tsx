@@ -6,6 +6,7 @@ import { Dashboard } from './pages/Dashboard';
 import { Customers } from './pages/Customers';
 import { POS } from './pages/POS';
 import { Notes } from './pages/Notes';
+import { Users } from './pages/Users';
 import { AuditLogs } from './pages/AuditLogs';
 import { PrintPromissoryNote } from './pages/PrintPromissoryNote';
 import { Layout } from './components/Layout';
@@ -51,6 +52,14 @@ function AppRoutes() {
         <Route path="/customers" element={<Customers />} />
         <Route path="/pos" element={<POS />} />
         <Route path="/notes" element={<Notes />} />
+        <Route
+          path="/users"
+          element={
+            <AdminRoute>
+              <Users />
+            </AdminRoute>
+          }
+        />
         <Route
           path="/audit"
           element={
